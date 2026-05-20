@@ -15,3 +15,5 @@ Zum Bauen/Preview:
 npm run build
 npm run preview
 ```
+
+added by Manic71
