@@ -44,11 +44,11 @@ export function FormInput({
  */
 export function FormSection({ title, children, divider = false }) {
   return (
-    <div className={divider ? "border-t border-slate-200 pt-6" : ""}>
+    <div className={divider ? "border-t border-slate-200 pt-4" : ""}>
       {title && (
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">{title}</h2>
+        <h2 className="text-lg font-semibold text-slate-900 mb-3">{title}</h2>
       )}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {children}
       </div>
     </div>

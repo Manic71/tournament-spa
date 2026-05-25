@@ -5,3 +5,31 @@
 body {
   font-family: Inter, system-ui;
 }
+
+/* Print Styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 1cm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Verstecke alles außer dem Druckinhalt */
+  body > div:first-child > div:first-child > header,
+  body > div:first-child > div:first-child > footer {
+    display: none !important;
+  }
+
+  /* Zeige nur den Druckinhalt */
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+}

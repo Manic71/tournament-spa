@@ -21,10 +21,10 @@ export default function MainLayout() {
     <div className="min-h-screen flex flex-col bg-white">
       <header className="bg-white border-b border-slate-200">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-slate-900">Turnier Manager</h1>
+          <h1 className="text-xl font-semibold text-slate-900">OÖHV Mini-Spieltag</h1>
           <nav className="flex gap-2">
-            <NavItem to="/" icon={Calendar}>Spielplan</NavItem>
-            <NavItem to="/teams" icon={Users}>Teams</NavItem>
+            <NavItem to="/teams" icon={Users}>Teams</NavItem>   
+	          <NavItem to="/" icon={Calendar}>Spielplan</NavItem>   
             <NavItem to="/live" icon={Radio}>Live</NavItem>
             <NavItem to="/druck" icon={Printer}>Drucken</NavItem>
             <NavItem to="/viewer" icon={Eye}>Viewer</NavItem>

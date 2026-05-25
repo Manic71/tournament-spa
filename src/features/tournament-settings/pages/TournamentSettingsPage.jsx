@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FormInput, FormSelect, FormSection, FormGrid } from "../../../components/ui/FormInput";
+import { RegistrationForm } from "../components/RegistrationForm";
 import { organizers } from "../../../data/organizers";
 import { venues } from "../../../data/venues";
 import { defaultSettings } from "../../../data/settings";
@@ -48,6 +49,12 @@ function calculateMaxRounds(totalMinutes, gameDuration, breakDuration) {
   return roundLength > 0 ? Math.floor((totalMinutes + breakMinutes) / roundLength) : 0;
 }
 
+function formatMinutesToHoursMinutes(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours} Stunden ${mins} Minuten`;
+}
+
 function TimeStepper({ label, name, value, onChange }) {
   const handleStep = (delta) => {
     const nextValue = adjustTime(value, delta);
@@ -88,22 +95,61 @@ function TimeStepper({ label, name, value, onChange }) {
   );
 }
 
-export default function TournamentSettingsPage() {
-  const [settings, setSettings] = useState(defaultSettings);
-  const [saveMessage, setSaveMessage] = useState("");
-  const hasInvalidTimeRange = isEndBeforeStart(settings.startTime, settings.endTime);
+function NumberStepper({ label, name, value, onChange, min = 0, max = 10 }) {
+  const currentValue = Number(value) || min;
+  
+  const handleStep = (delta) => {
+    const nextValue = Math.max(min, Math.min(max, currentValue + delta));
+    onChange({ target: { name, value: nextValue } });
+  };
 
-  // Beim Component-Mount gespeicherte Daten laden
-  useEffect(() => {
+  return (
+    <div className="flex flex-col gap-2">
+      <label htmlFor={name} className="text-sm font-medium text-slate-900">
+        {label}
+      </label>
+      <div className="flex items-center gap-2 rounded-md border border-slate-300 bg-white p-1">
+        <button
+          type="button"
+          onClick={() => handleStep(-1)}
+          disabled={currentValue <= min}
+          className="px-3 py-2 text-slate-600 bg-slate-100 rounded hover:bg-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100"
+        >
+          −
+        </button>
+        <div className="flex-1 px-4 py-2 text-center font-medium text-slate-900">
+          {currentValue}
+        </div>
+        <button
+          type="button"
+          onClick={() => handleStep(1)}
+          disabled={currentValue >= max}
+          className="px-3 py-2 text-slate-600 bg-slate-100 rounded hover:bg-slate-200 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-100"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function TournamentSettingsPage() {
+  const [settings, setSettings] = useState(() => {
     const savedSettings = localStorage.getItem(STORAGE_KEY);
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsed = JSON.parse(savedSettings);
+        // Merge mit defaultSettings um sicherzustellen, dass neue Felder vorhanden sind
+        return { ...defaultSettings, ...parsed };
       } catch (error) {
         console.error("Fehler beim Laden gespeicherter Einstellungen:", error);
+        return defaultSettings;
       }
     }
-  }, []);
+    return defaultSettings;
+  });
+  const [saveMessage, setSaveMessage] = useState("");
+  const hasInvalidTimeRange = isEndBeforeStart(settings.startTime, settings.endTime);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -139,9 +185,9 @@ export default function TournamentSettingsPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold text-slate-900 mb-8">Turnier Einstellungen</h1>
+      <h1 className="text-3xl font-bold text-slate-900 mb-4">Turnier Einstellungen</h1>
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-8">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
         
         {/* Grundinformationen */}
         <FormSection title="Grundinformationen">
@@ -189,21 +235,40 @@ export default function TournamentSettingsPage() {
               value={settings.endTime}
               onChange={handleChange}
             />
-            <FormInput
+            <NumberStepper
               label="Spieldauer (Minuten)"
               name="gameDuration"
-              type="number"
               value={settings.gameDuration}
               onChange={handleChange}
-              min="1"
+              min={1}
+              max={30}
             />
-            <FormInput
+            <NumberStepper
               label="Pause (Minuten)"
               name="breakDuration"
-              type="number"
               value={settings.breakDuration}
               onChange={handleChange}
-              min="0"
+              min={0}
+              max={15}
+            />
+          </FormGrid>
+
+          <FormGrid columns={2}>
+            <NumberStepper
+              label="Pause nach Spiel"
+              name="pauseAfterGame"
+              value={settings.pauseAfterGame}
+              onChange={handleChange}
+              min={0}
+              max={2}
+            />
+            <NumberStepper
+              label="Anzahl Spielfelder"
+              name="numberOfFields"
+              value={settings.numberOfFields}
+              onChange={handleChange}
+              min={1}
+              max={3}
             />
           </FormGrid>
 
@@ -217,7 +282,7 @@ export default function TournamentSettingsPage() {
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="font-semibold text-slate-900">Gesamtdauer des Turniers:</span>
-            <span>{totalTournamentMinutes} Minuten</span>
+            <span>{formatMinutesToHoursMinutes(totalTournamentMinutes)} ({totalTournamentMinutes} Minuten)</span>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-2">
             <span className="font-semibold text-slate-900">Maximal mögliche Runden:</span>
@@ -240,7 +305,14 @@ export default function TournamentSettingsPage() {
           >
             Zurücksetzen
           </button>
+          <RegistrationForm settings={settings} />
         </div>
+
+        {saveMessage && (
+          <div className="mt-4 rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+            {saveMessage}
+          </div>
+        )}
       </form>
     </div>
   );
