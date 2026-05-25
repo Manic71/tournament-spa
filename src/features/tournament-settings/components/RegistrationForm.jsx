@@ -1,5 +1,6 @@
 import React from "react";
 import { organizers } from "../../../data/organizers";
+import { venues } from "../../../data/venues";
 
 /**
  * RegistrationForm Komponente
@@ -9,6 +10,11 @@ export function RegistrationForm({ settings }) {
   const handlePrint = () => {
     window.print();
   };
+
+  // Finde die Namen für Veranstalter und Halle
+  const organizerName = organizers.find(o => o.id === parseInt(settings.organizer))?.name || "";
+  const venueName = venues.find(v => v.id === parseInt(settings.venue))?.name || "";
+  const formattedDate = settings.date ? new Date(settings.date).toLocaleDateString('de-DE') : "";
 
   return (
     <div>
@@ -24,17 +30,13 @@ export function RegistrationForm({ settings }) {
       {/* Druckbarer Inhalt - nur beim Drucken sichtbar */}
       <div className="hidden print:block">
         <div className="p-8">
-          {/* Header */}
-          <div className="mb-6 border-b-2 border-slate-900 pb-4">
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">Meldeformular</h1>
-            {settings.date && (
-              <p className="text-sm text-slate-700">Datum: {new Date(settings.date).toLocaleDateString('de-DE')}</p>
-            )}
-            {settings.venue && (
-              <p className="text-sm text-slate-700">
-                Halle: {organizers.find(o => o.id === parseInt(settings.venue))?.name || settings.venue}
-              </p>
-            )}
+          {/* Kompakte Header-Info */}
+          <div className="mb-4 text-sm">
+            {organizerName && <span className="font-semibold">Veranstalter: {organizerName}</span>}
+            {organizerName && formattedDate && <span className="mx-2">|</span>}
+            {formattedDate && <span className="font-semibold">Datum: {formattedDate}</span>}
+            {formattedDate && venueName && <span className="mx-2">|</span>}
+            {venueName && <span className="font-semibold">Halle: {venueName}</span>}
           </div>
 
           {/* Tabelle */}
@@ -74,11 +76,6 @@ export function RegistrationForm({ settings }) {
               ))}
             </tbody>
           </table>
-
-          {/* Footer / Hinweise */}
-          <div className="mt-6 text-xs text-slate-600">
-            <p>Bitte tragen Sie die Anzahl der gemeldeten Teams pro Altersklasse ein.</p>
-          </div>
         </div>
       </div>
     </div>
