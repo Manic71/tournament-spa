@@ -30,13 +30,11 @@ export function RegistrationForm({ settings }) {
       {/* Druckbarer Inhalt - nur beim Drucken sichtbar */}
       <div className="hidden print:block">
         <div className="p-8">
-          {/* Kompakte Header-Info */}
-          <div className="mb-4 text-sm">
-            {organizerName && <span className="font-semibold">Veranstalter: {organizerName}</span>}
-            {organizerName && formattedDate && <span className="mx-2">|</span>}
-            {formattedDate && <span className="font-semibold">Datum: {formattedDate}</span>}
-            {formattedDate && venueName && <span className="mx-2">|</span>}
-            {venueName && <span className="font-semibold">Halle: {venueName}</span>}
+          {/* Schlanke Info-Box */}
+          <div className="mb-6 p-3 border border-slate-300 bg-slate-50 text-sm">
+            <div>
+              <strong>Veranstalter:</strong> {organizerName} | <strong>Datum:</strong> {formattedDate} | <strong>Halle:</strong> {venueName}
+            </div>
           </div>
 
           {/* Tabelle */}
@@ -47,10 +45,10 @@ export function RegistrationForm({ settings }) {
                   Verein
                 </th>
                 <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">
-                  U6
+                  U8
                 </th>
                 <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">
-                  U8
+                  U9
                 </th>
                 <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">
                   U10
@@ -74,6 +72,25 @@ export function RegistrationForm({ settings }) {
                   </td>
                 </tr>
               ))}
+              {/* 3 Leerzeilen am Ende */}
+              <tr>
+                <td className="border-2 border-slate-900 px-4 py-3">&nbsp;</td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+              </tr>
+              <tr>
+                <td className="border-2 border-slate-900 px-4 py-3">&nbsp;</td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+              </tr>
+              <tr>
+                <td className="border-2 border-slate-900 px-4 py-3">&nbsp;</td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+                <td className="border-2 border-slate-900 px-4 py-3 h-12"></td>
+              </tr>
             </tbody>
           </table>
         </div>

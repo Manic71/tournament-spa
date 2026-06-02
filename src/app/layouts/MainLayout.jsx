@@ -20,7 +20,7 @@ export default function MainLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-900">OÖHV Mini-Spieltag</h1>
           <nav className="flex gap-2">
             <NavItem to="/teams" icon={Users}>Teams</NavItem>   
@@ -33,12 +33,12 @@ export default function MainLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-5xl mx-auto px-4 py-6">
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-6">
         <Outlet />
       </main>
 
       <footer className="bg-white border-t">
-        <div className="max-w-5xl mx-auto px-4 py-3 text-sm text-slate-500">© {new Date().getFullYear()} Turnier Manager</div>
+        <div className="max-w-7xl mx-auto px-4 py-3 text-sm text-slate-500">© {new Date().getFullYear()} Turnier Manager</div>
       </footer>
     </div>
   );

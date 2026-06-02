@@ -184,13 +184,14 @@ export default function TournamentSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-3xl font-bold text-slate-900 mb-4">Turnier Einstellungen</h1>
+    <div className="max-w-2xl print:max-w-full print:p-0">
+      <h1 className="text-3xl font-bold text-slate-900 mb-4 print:hidden">Turnier Einstellungen</h1>
 
-      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
+      <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 print:space-y-0">
         
         {/* Grundinformationen */}
-        <FormSection title="Grundinformationen">
+        <div className="print:hidden">
+          <FormSection title="Grundinformationen">
           <FormGrid columns={2}>
             <FormSelect
               label="Veranstalter"
@@ -219,9 +220,11 @@ export default function TournamentSettingsPage() {
             />
           </FormGrid>
         </FormSection>
+        </div>
 
         {/* Zeiteinstellungen */}
-        <FormSection title="Zeiteinstellungen" divider>
+        <div className="print:hidden">
+          <FormSection title="Zeiteinstellungen" divider>
           <FormGrid columns={2}>
             <TimeStepper
               label="Beginn"
@@ -278,8 +281,9 @@ export default function TournamentSettingsPage() {
             </div>
           )}
         </FormSection>
+        </div>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 print:hidden">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="font-semibold text-slate-900">Gesamtdauer des Turniers:</span>
             <span>{formatMinutesToHoursMinutes(totalTournamentMinutes)} ({totalTournamentMinutes} Minuten)</span>
@@ -291,7 +295,7 @@ export default function TournamentSettingsPage() {
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3 pt-4">
+        <div className="flex gap-3 pt-4 print:hidden">
           <button
             type="submit"
             className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium"
@@ -305,11 +309,12 @@ export default function TournamentSettingsPage() {
           >
             Zurücksetzen
           </button>
-          <RegistrationForm settings={settings} />
         </div>
 
+        <RegistrationForm settings={settings} />
+
         {saveMessage && (
-          <div className="mt-4 rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
+          <div className="mt-4 rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800 print:hidden">
             {saveMessage}
           </div>
         )}
