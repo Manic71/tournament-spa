@@ -131,42 +131,43 @@ export default function TeamsPage() {
                 </span>
               </div>
 
-              <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-1 p-5 sm:grid-cols-2 xl:grid-cols-3">
                 {AGE_GROUPS.map((ageGroup) => (
-                  <div
-                    key={ageGroup}
-                    className="rounded-3xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between gap-3">
+                  <div key={ageGroup} className="overflow-hidden">
+                    <div className="flex h-full rounded-2xl border border-slate-200 bg-slate-50">
+                      {/* linke Hälfte: Badge + Stepper */}
+                      <div className="w-1/2 p-4 flex flex-col items-start justify-center gap-4">
                         <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
                           {ageGroup}
                         </span>
-                        <NumberStepper
-                          label={ageGroup}
-                          value={teamData?.[ageGroup] || 0}
-                          onChange={(value) =>
-                            handleTeamCountChange(organizer.id, ageGroup, value)
-                          }
-                          min={0}
-                          max={3}
-                        />
+                        <div className="w-full">
+                          <NumberStepper
+                            label={ageGroup}
+                            value={teamData?.[ageGroup] || 0}
+                            onChange={(value) =>
+                              handleTeamCountChange(organizer.id, ageGroup, value)
+                            }
+                            min={0}
+                            max={3}
+                          />
+                        </div>
                       </div>
 
-                      <div className="text-sm text-slate-700">
-                        {(teamData?.[ageGroup] || 0) > 0 ? (
-                          <ul className="space-y-1">
-                            {Array.from({ length: teamData?.[ageGroup] || 0 }).map(
-                              (_, i) => (
+                      {/* rechte Hälfte: Mannschaftsnamen */}
+                      <div className="w-1/2 p-4 flex items-center">
+                        <div className="text-sm text-slate-700 w-full">
+                          {(teamData?.[ageGroup] || 0) > 0 ? (
+                            <ul className="space-y-1">
+                              {Array.from({ length: teamData?.[ageGroup] || 0 }).map((_, i) => (
                                 <li key={`${ageGroup}-${i}`}>
                                   {organizer.name} {i + 1} ({ageGroup})
                                 </li>
-                              )
-                            )}
-                          </ul>
-                        ) : (
-                          <span className="text-slate-500">—</span>
-                        )}
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-slate-500">—</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
