@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { organizers } from "../../../data/organizers";
+import { venues } from "../../../data/venues";
 
 const STORAGE_KEY = "teamsList";
+const SETTINGS_STORAGE_KEY = "tournamentSettings";
 const AGE_GROUPS = ["U8", "U9", "U10"];
 
 function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
@@ -75,6 +77,42 @@ export default function TeamsPage() {
   const getTotalTeams = (teamData) =>
     AGE_GROUPS.reduce((sum, ageGroup) => sum + (teamData?.[ageGroup] || 0), 0);
 
+  const loadTournamentSettings = () => {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!savedSettings) {
+      return { organizer: "", venue: "", date: "" };
+    }
+
+    try {
+      const parsed = JSON.parse(savedSettings);
+      return {
+        organizer: parsed.organizer || "",
+        venue: parsed.venue || "",
+        date: parsed.date || "",
+      };
+    } catch {
+      return { organizer: "", venue: "", date: "" };
+    }
+  };
+
+  const tournamentSettings = loadTournamentSettings();
+  const tournamentOrganizerName = organizers.find((o) => o.id === parseInt(tournamentSettings.organizer, 10))?.name || "";
+  const tournamentVenueName = venues.find((v) => v.id === parseInt(tournamentSettings.venue, 10))?.name || "";
+
+  const getTournamentTotals = () => {
+    return AGE_GROUPS.reduce(
+      (totals, ageGroup) => {
+        const ageCount = organizers
+          .filter((organizer) => !removedOrganizers.includes(organizer.id))
+          .reduce((sum, organizer) => sum + (teams[organizer.id]?.[ageGroup] || 0), 0);
+        totals[ageGroup] = ageCount;
+        totals.total += ageCount;
+        return totals;
+      },
+      { total: 0 }
+    );
+  };
+
   const handleTeamCountChange = (organizerId, ageGroup, newValue) => {
     setTeams((prev) => ({
       ...prev,
@@ -118,12 +156,13 @@ export default function TeamsPage() {
 
   return (
     <div className="w-full">
-      <div className="mb-6 px-4 w-full max-w-none">
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Team-Erfassung</h1>
-        <p className="text-sm text-slate-600 max-w-2xl">
-          Anzahl der Mannschaften pro Verein und Altersgruppe festlegen.
-        </p>
-      </div>
+      <div className="print:hidden">
+        <div className="mb-6 px-4 w-full max-w-none">
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Team-Erfassung</h1>
+          <p className="text-sm text-slate-600 max-w-2xl">
+            Anzahl der Mannschaften pro Verein und Altersgruppe festlegen.
+          </p>
+        </div>
 
       <div className="mb-4 px-4 w-full max-w-none">
         {removedOrganizers.length > 0 && (
@@ -239,6 +278,23 @@ export default function TeamsPage() {
         })}
       </div>
 
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 mb-6 mx-4 max-w-7xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Übersicht</h2>
+            <p className="text-sm text-slate-600">Gesamtanzahl der Mannschaften je Altersgruppe und für das Turnier.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+            {Object.entries(getTournamentTotals()).map(([key, value]) => (
+              <div key={key} className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-900 shadow-sm">
+                <div className="font-semibold">{key === 'total' ? 'Gesamt' : key}</div>
+                <div>{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 px-4 mb-6 max-w-7xl sm:flex-row sm:items-center">
         <button
           type="button"
@@ -246,6 +302,13 @@ export default function TeamsPage() {
           className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 sm:w-auto"
         >
           Speichern
+        </button>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+        >
+          Druck Teilnahme-Statistik
         </button>
         <button
           type="button"
@@ -261,6 +324,59 @@ export default function TeamsPage() {
           {saveMessage}
         </div>
       )}
+      </div>
+
+      <div className="hidden print:block">
+        <div className="p-4 space-y-4">
+          <h1 className="text-2xl font-bold text-slate-900">Teilnahme-Statistik</h1>
+          <div className="flex flex-col gap-2 text-sm text-slate-900">
+            <div>
+              <span className="font-semibold">Veranstalter:</span> {tournamentOrganizerName || '–'}
+            </div>
+            <div>
+              <span className="font-semibold">Datum:</span> {tournamentSettings.date || '–'}
+            </div>
+            <div>
+              <span className="font-semibold">Halle:</span> {tournamentVenueName || '–'}
+            </div>
+          </div>
+          <table className="mt-4 w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className="border-2 border-slate-900 px-4 py-3 text-left font-bold bg-slate-100">Verein</th>
+                <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">U8</th>
+                <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">U9</th>
+                <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">U10</th>
+                <th className="border-2 border-slate-900 px-4 py-3 text-center font-bold bg-slate-100 w-24">Gesamt</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleOrganizers.map((organizer) => {
+                const teamData = teams[organizer.id];
+                const organizerTotal = getTotalTeams(teamData);
+                return (
+                  <tr key={organizer.id}>
+                    <td className="border-2 border-slate-900 px-4 py-3 text-slate-900">{organizer.name}</td>
+                    <td className="border-2 border-slate-900 px-4 py-3 text-center">{teamData?.U8 || 0}</td>
+                    <td className="border-2 border-slate-900 px-4 py-3 text-center">{teamData?.U9 || 0}</td>
+                    <td className="border-2 border-slate-900 px-4 py-3 text-center">{teamData?.U10 || 0}</td>
+                    <td className="border-2 border-slate-900 px-4 py-3 text-center font-semibold">{organizerTotal}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-100 font-semibold">
+                <td className="border-2 border-slate-900 px-4 py-3">Summe</td>
+                {AGE_GROUPS.map((ageGroup) => (
+                  <td key={ageGroup} className="border-2 border-slate-900 px-4 py-3 text-center">{getTournamentTotals()[ageGroup]}</td>
+                ))}
+                <td className="border-2 border-slate-900 px-4 py-3 text-center">{getTournamentTotals().total}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
