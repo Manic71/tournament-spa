@@ -13,8 +13,10 @@ function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
   };
 
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-xs font-medium text-slate-900">{label}</label>
+    <div className={label ? "flex flex-col gap-1" : "flex flex-col"}>
+      {label && (
+        <label className="text-xs font-medium text-slate-900">{label}</label>
+      )}
       <div className="flex items-center gap-1 rounded-md border border-slate-300 bg-white p-0.5">
         <button
           type="button"
