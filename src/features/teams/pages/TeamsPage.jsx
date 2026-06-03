@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import { organizers } from "../../../data/organizers";
 import { venues } from "../../../data/venues";
 
@@ -30,8 +31,8 @@ function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
           −
         </button>
         <div className="flex-1 px-2 py-1 text-center text-sm font-medium text-slate-900">
-          {currentValue}
-        </div>
+            {currentValue}
+          </div>
         <button
           type="button"
           onClick={() => handleStep(1)}
@@ -64,6 +65,7 @@ export default function TeamsPage() {
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [removedOrganizers, setRemovedOrganizers] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
+  const { setFooterActions } = useOutletContext();
 
   function initializeTeams() {
     return organizers.reduce((acc, organizer) => {
@@ -191,6 +193,48 @@ export default function TeamsPage() {
     setGuestClubName("");
     setIsGuestModalOpen(false);
   };
+
+  useEffect(() => {
+    if (!setFooterActions) return;
+    setFooterActions(
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 sm:w-auto"
+          >
+            Speichern
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Zurücksetzen
+          </button>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setIsGuestModalOpen(true)}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Gastverein hinzufügen
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Druck Teilnahme-Statistik
+          </button>
+        </div>
+      </div>
+    );
+
+    return () => setFooterActions(null);
+  }, [handleReset, handleSave, setFooterActions]);
 
   const handleRemoveOrganizer = (organizerId) => {
     setRemovedOrganizers((prev) => [...prev, organizerId]);
@@ -349,41 +393,7 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 mb-6 max-w-7xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 sm:w-auto"
-          >
-            Speichern
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
-          >
-            Zurücksetzen
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => setIsGuestModalOpen(true)}
-            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
-          >
-            Gastverein hinzufügen
-          </button>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
-          >
-            Druck Teilnahme-Statistik
-          </button>
-        </div>
-      </div>
+      {/* Page action buttons are rendered in the fixed footer */}
 
       {saveMessage && (
         <div className="mx-4 max-w-7xl rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
 import { FormInput, FormSelect, FormSection, FormGrid } from "../../../components/ui/FormInput";
 import { RegistrationForm } from "../components/RegistrationForm";
 import { organizers } from "../../../data/organizers";
@@ -149,6 +150,7 @@ export default function TournamentSettingsPage() {
     return defaultSettings;
   });
   const [saveMessage, setSaveMessage] = useState("");
+  const { setFooterActions } = useOutletContext();
   const hasInvalidTimeRange = isEndBeforeStart(settings.startTime, settings.endTime);
 
   const handleChange = (e) => {
@@ -182,6 +184,40 @@ export default function TournamentSettingsPage() {
     localStorage.removeItem(STORAGE_KEY);
     setSaveMessage("");
   };
+
+  useEffect(() => {
+    if (!setFooterActions) return;
+    setFooterActions(
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="submit"
+            onClick={handleSave}
+            className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium"
+          >
+            Speichern
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
+          >
+            Zurücksetzen
+          </button>
+        </div>
+        <div className="flex justify-start sm:justify-end">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
+          >
+            Meldeformular drucken
+          </button>
+        </div>
+      </div>
+    );
+    return () => setFooterActions(null);
+  }, [handleReset, handleSave, setFooterActions]);
 
   return (
     <div className="w-[90%] max-w-full mx-auto print:max-w-full print:p-0">
@@ -294,33 +330,7 @@ export default function TournamentSettingsPage() {
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col gap-3 pt-4 print:hidden sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium"
-            >
-              Speichern
-            </button>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
-            >
-              Zurücksetzen
-            </button>
-          </div>
-          <div className="flex justify-start sm:justify-end">
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
-            >
-              Meldeformular drucken
-            </button>
-          </div>
-        </div>
+        {/* Page action buttons are rendered in the fixed footer */}
 
         <RegistrationForm settings={settings} />
 
