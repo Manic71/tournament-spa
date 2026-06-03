@@ -4,6 +4,7 @@ import { venues } from "../../../data/venues";
 
 const STORAGE_KEY = "teamsList";
 const SETTINGS_STORAGE_KEY = "tournamentSettings";
+const GUEST_STORAGE_KEY = "guestClubs";
 const AGE_GROUPS = ["U8", "U9", "U10"];
 
 function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
@@ -58,6 +59,9 @@ export default function TeamsPage() {
     return initializeTeams();
   });
 
+  const [guestClubName, setGuestClubName] = useState("");
+  const [guestClubs, setGuestClubs] = useState(() => loadGuestClubs());
+  const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [removedOrganizers, setRemovedOrganizers] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
 
@@ -99,10 +103,25 @@ export default function TeamsPage() {
   const tournamentOrganizerName = organizers.find((o) => o.id === parseInt(tournamentSettings.organizer, 10))?.name || "";
   const tournamentVenueName = venues.find((v) => v.id === parseInt(tournamentSettings.venue, 10))?.name || "";
 
+  function loadGuestClubs() {
+    const savedGuestClubs = localStorage.getItem(GUEST_STORAGE_KEY);
+    if (!savedGuestClubs) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(savedGuestClubs);
+    } catch {
+      return [];
+    }
+  }
+
+  const allOrganizers = [...organizers, ...guestClubs];
+
   const getTournamentTotals = () => {
     return AGE_GROUPS.reduce(
       (totals, ageGroup) => {
-        const ageCount = organizers
+        const ageCount = allOrganizers
           .filter((organizer) => !removedOrganizers.includes(organizer.id))
           .reduce((sum, organizer) => sum + (teams[organizer.id]?.[ageGroup] || 0), 0);
         totals[ageGroup] = ageCount;
@@ -133,9 +152,44 @@ export default function TeamsPage() {
   const handleReset = () => {
     const initialTeams = initializeTeams();
     setTeams(initialTeams);
+    setGuestClubs([]);
+    setGuestClubName("");
     setRemovedOrganizers([]);
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(GUEST_STORAGE_KEY);
     setSaveMessage("");
+  };
+
+  const handleAddGuestClub = () => {
+    const trimmedName = guestClubName.trim();
+    if (!trimmedName) {
+      return;
+    }
+
+    const newGuestClub = {
+      id: `guest-${Date.now()}`,
+      name: trimmedName,
+    };
+
+    setGuestClubs((prev) => {
+      const updated = [...prev, newGuestClub];
+      localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+
+    setTeams((prev) => ({
+      ...prev,
+      [newGuestClub.id]: {
+        organizerId: newGuestClub.id,
+        organizerName: newGuestClub.name,
+        U8: 0,
+        U9: 0,
+        U10: 0,
+      },
+    }));
+
+    setGuestClubName("");
+    setIsGuestModalOpen(false);
   };
 
   const handleRemoveOrganizer = (organizerId) => {
@@ -150,7 +204,7 @@ export default function TeamsPage() {
     setRemovedOrganizers([]);
   };
 
-  const visibleOrganizers = organizers.filter(
+  const visibleOrganizers = allOrganizers.filter(
     (organizer) => !removedOrganizers.includes(organizer.id)
   );
 
@@ -173,7 +227,7 @@ export default function TeamsPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {removedOrganizers.map((organizerId) => {
-                  const organizer = organizers.find((o) => o.id === organizerId);
+                  const organizer = allOrganizers.find((o) => o.id === organizerId);
                   return (
                     <button
                       key={organizerId}
@@ -232,12 +286,12 @@ export default function TeamsPage() {
                 </div>
               </div>
 
-              <div className="grid gap-1 p-5 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-1 p-3 sm:grid-cols-2 xl:grid-cols-3">
                 {AGE_GROUPS.map((ageGroup) => (
                   <div key={ageGroup} className="overflow-hidden">
                     <div className="flex h-full rounded-2xl border border-slate-200 bg-slate-50 divide-x divide-slate-200">
                       {/* linke Hälfte: Badge + Stepper */}
-                      <div className="w-1/2 p-3 flex items-center justify-between gap-3">
+                      <div className="w-1/2 px-3 py-2 flex items-center justify-between gap-3">
                         <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
                           {ageGroup}
                         </span>
@@ -254,7 +308,7 @@ export default function TeamsPage() {
                       </div>
 
                       {/* rechte Hälfte: Mannschaftsnamen */}
-                      <div className="w-1/2 p-3 flex items-center">
+                      <div className="w-1/2 px-3 py-2 flex items-center">
                         <div className="text-sm text-slate-700 w-full">
                           {(teamData?.[ageGroup] || 0) > 0 ? (
                             <ul className="space-y-1">
@@ -295,33 +349,94 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 px-4 mb-6 max-w-7xl sm:flex-row sm:items-center">
-        <button
-          type="button"
-          onClick={handleSave}
-          className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 sm:w-auto"
-        >
-          Speichern
-        </button>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
-        >
-          Druck Teilnahme-Statistik
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
-        >
-          Zurücksetzen
-        </button>
+      <div className="flex flex-col gap-3 px-4 mb-6 max-w-7xl sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 sm:w-auto"
+          >
+            Speichern
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Zurücksetzen
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => setIsGuestModalOpen(true)}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Gastverein hinzufügen
+          </button>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Druck Teilnahme-Statistik
+          </button>
+        </div>
       </div>
 
       {saveMessage && (
         <div className="mx-4 max-w-7xl rounded-md border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-800">
           {saveMessage}
+        </div>
+      )}
+
+      {isGuestModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Gastverein hinzufügen</h2>
+                <p className="text-sm text-slate-600">Gib den Namen des Gastvereins ein.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGuestModalOpen(false)}
+                className="rounded-full bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-5 space-y-4">
+              <label htmlFor="guest-club-name" className="block text-sm font-medium text-slate-900">
+                Vereinsname
+              </label>
+              <input
+                id="guest-club-name"
+                type="text"
+                value={guestClubName}
+                onChange={(event) => setGuestClubName(event.target.value)}
+                className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                placeholder="Vereinsname eingeben"
+              />
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsGuestModalOpen(false)}
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddGuestClub}
+                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  Gastverein hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
       </div>

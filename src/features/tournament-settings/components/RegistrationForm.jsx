@@ -18,15 +18,6 @@ export function RegistrationForm({ settings }) {
 
   return (
     <div>
-      {/* Print Button - wird beim Drucken ausgeblendet */}
-      <button
-        type="button"
-        onClick={handlePrint}
-        className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium print:hidden"
-      >
-        Meldeformular drucken
-      </button>
-
       {/* Druckbarer Inhalt - nur beim Drucken sichtbar */}
       <div className="hidden print:block">
         <div className="p-8">

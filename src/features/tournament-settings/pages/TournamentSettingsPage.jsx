@@ -295,20 +295,31 @@ export default function TournamentSettingsPage() {
         </div>
 
         {/* Buttons */}
-        <div className="flex gap-3 pt-4 print:hidden">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium"
-          >
-            Speichern
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
-          >
-            Zurücksetzen
-          </button>
+        <div className="flex flex-col gap-3 pt-4 print:hidden sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-slate-900 text-white rounded-md hover:bg-slate-800 transition-colors font-medium"
+            >
+              Speichern
+            </button>
+            <button
+              type="button"
+              onClick={handleReset}
+              className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
+            >
+              Zurücksetzen
+            </button>
+          </div>
+          <div className="flex justify-start sm:justify-end">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-4 py-2 border border-slate-300 text-slate-900 rounded-md hover:bg-slate-50 transition-colors font-medium"
+            >
+              Meldeformular drucken
+            </button>
+          </div>
         </div>
 
         <RegistrationForm settings={settings} />
