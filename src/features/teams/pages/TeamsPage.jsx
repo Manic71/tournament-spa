@@ -353,7 +353,7 @@ export default function TeamsPage() {
 
                       {/* rechte Hälfte: Mannschaftsnamen */}
                       <div className="w-1/2 px-3 py-2 flex items-center">
-                        <div className="text-sm text-slate-700 w-full">
+                        <div className="text-xs text-slate-700 w-full">
                           {(teamData?.[ageGroup] || 0) > 0 ? (
                             <ul className="space-y-1">
                               {Array.from({ length: teamData?.[ageGroup] || 0 }).map((_, i) => (
