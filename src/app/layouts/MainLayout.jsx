@@ -33,7 +33,7 @@ export default function MainLayout() {
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-none px-4 py-6">
+      <main className="flex-1 w-[90%] max-w-full mx-auto px-4 py-6">
         <Outlet />
       </main>
 

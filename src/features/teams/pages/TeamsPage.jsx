@@ -56,6 +56,7 @@ export default function TeamsPage() {
     return initializeTeams();
   });
 
+  const [removedOrganizers, setRemovedOrganizers] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
 
   function initializeTeams() {
@@ -94,9 +95,26 @@ export default function TeamsPage() {
   const handleReset = () => {
     const initialTeams = initializeTeams();
     setTeams(initialTeams);
+    setRemovedOrganizers([]);
     localStorage.removeItem(STORAGE_KEY);
     setSaveMessage("");
   };
+
+  const handleRemoveOrganizer = (organizerId) => {
+    setRemovedOrganizers((prev) => [...prev, organizerId]);
+  };
+
+  const handleRestoreOrganizer = (organizerId) => {
+    setRemovedOrganizers((prev) => prev.filter((id) => id !== organizerId));
+  };
+
+  const handleRestoreAll = () => {
+    setRemovedOrganizers([]);
+  };
+
+  const visibleOrganizers = organizers.filter(
+    (organizer) => !removedOrganizers.includes(organizer.id)
+  );
 
   return (
     <div className="w-full">
@@ -107,44 +125,85 @@ export default function TeamsPage() {
         </p>
       </div>
 
+      <div className="mb-4 px-4 w-full max-w-none">
+        {removedOrganizers.length > 0 && (
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <strong>{removedOrganizers.length}</strong> entfernte Vereine
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {removedOrganizers.map((organizerId) => {
+                  const organizer = organizers.find((o) => o.id === organizerId);
+                  return (
+                    <button
+                      key={organizerId}
+                      type="button"
+                      onClick={() => handleRestoreOrganizer(organizerId)}
+                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 hover:bg-slate-100 transition"
+                    >
+                      Wieder hinzufügen: {organizer?.name}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={handleRestoreAll}
+                  className="rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-900 hover:bg-slate-200 transition"
+                >
+                  Alle wieder hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-1 gap-4 mb-6 px-4 w-full max-w-none">
-        {organizers.map((organizer) => {
+        {visibleOrganizers.map((organizer) => {
           const teamData = teams[organizer.id];
           return (
             <div
               key={organizer.id}
               className="rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
             >
-              <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-lg font-semibold text-slate-900">
+              <div className="flex flex-col gap-2 border-b border-slate-200 px-5 py-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-base font-semibold text-slate-900">
                     {organizer.name.charAt(0)}
                   </div>
                   <div>
                     <h2 className="text-base font-semibold text-slate-900">
                       {organizer.name}
                     </h2>
-                    <p className="text-sm text-slate-500">Verein</p>
                   </div>
                 </div>
 
-                <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-900">
-                  {getTotalTeams(teamData)} Teams
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-900">
+                    {getTotalTeams(teamData)} Teams
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveOrganizer(organizer.id)}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-1 text-sm font-medium text-slate-900 hover:bg-slate-50 transition"
+                  >
+                    Entfernen
+                  </button>
+                </div>
               </div>
 
               <div className="grid gap-1 p-5 sm:grid-cols-2 xl:grid-cols-3">
                 {AGE_GROUPS.map((ageGroup) => (
                   <div key={ageGroup} className="overflow-hidden">
-                    <div className="flex h-full rounded-2xl border border-slate-200 bg-slate-50">
+                    <div className="flex h-full rounded-2xl border border-slate-200 bg-slate-50 divide-x divide-slate-200">
                       {/* linke Hälfte: Badge + Stepper */}
-                      <div className="w-1/2 p-4 flex flex-col items-start justify-center gap-4">
+                      <div className="w-1/2 p-3 flex items-center justify-between gap-3">
                         <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
                           {ageGroup}
                         </span>
-                        <div className="w-full">
+                        <div className="w-24">
                           <NumberStepper
-                            label={ageGroup}
                             value={teamData?.[ageGroup] || 0}
                             onChange={(value) =>
                               handleTeamCountChange(organizer.id, ageGroup, value)
@@ -156,7 +215,7 @@ export default function TeamsPage() {
                       </div>
 
                       {/* rechte Hälfte: Mannschaftsnamen */}
-                      <div className="w-1/2 p-4 flex items-center">
+                      <div className="w-1/2 p-3 flex items-center">
                         <div className="text-sm text-slate-700 w-full">
                           {(teamData?.[ageGroup] || 0) > 0 ? (
                             <ul className="space-y-1">

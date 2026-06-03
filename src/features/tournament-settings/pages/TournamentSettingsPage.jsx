@@ -184,7 +184,7 @@ export default function TournamentSettingsPage() {
   };
 
   return (
-    <div className="max-w-2xl print:max-w-full print:p-0">
+    <div className="w-[90%] max-w-full mx-auto print:max-w-full print:p-0">
       <h1 className="text-3xl font-bold text-slate-900 mb-4 print:hidden">Turnier Einstellungen</h1>
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 print:space-y-0">
