@@ -135,6 +135,23 @@ export default function TeamsPage() {
     );
   };
 
+  const getAgeGroupTooltip = (count) => {
+    switch (count) {
+      case 0:
+        return "keine Mannschaft gemeldet - Altersklasse wird im Spielplan übersprungen";
+      case 1:
+        return "nur 1 Mannschaft gemeldet, es sind mindestens 2 Mannschaften notwendig.";
+      case 2:
+        return "nur 2 Mannschaften gemeldet - es wird 2x Doppelrunde (Hin- und Rückrunde) gespielt.";
+      case 3:
+        return "es sind nur 3 Mannschaften gemeldet - es wird eine Doppelrunde (Hin- und Rückrunde) gespielt.";
+      case 4:
+        return "es sind 4 Mannschaften gemeldet - es wird eine Doppelrunde (Hin- und Rückrunde) gespielt.";
+      default:
+        return "Mehr als 4 Mannschaften gemeldet.";
+    }
+  };
+
   const handleTeamCountChange = (organizerId, ageGroup, newValue) => {
     setTeams((prev) => ({
       ...prev,
@@ -283,12 +300,30 @@ export default function TeamsPage() {
                 )}
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-                {Object.entries(getTournamentTotals()).map(([key, value]) => (
-                  <div key={key} className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-900 shadow-sm">
-                    <div className="font-semibold text-slate-900">{key === 'total' ? 'Gesamt' : key}</div>
-                    <div>{value}</div>
-                  </div>
-                ))}
+                {Object.entries(getTournamentTotals()).map(([key, value]) => {
+                  const isAgeGroup = AGE_GROUPS.includes(key);
+                  return (
+                    <div
+                      key={key}
+                      className="group relative rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-900 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="font-semibold text-slate-900">{key === 'total' ? 'Gesamt' : key}</div>
+                        {isAgeGroup && (
+                          <div className="relative">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-700">
+                              i
+                            </span>
+                            <div className="pointer-events-none absolute right-0 top-full z-10 mt-2 hidden w-64 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-800 shadow-lg group-hover:block">
+                              {getAgeGroupTooltip(value)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div>{value}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
