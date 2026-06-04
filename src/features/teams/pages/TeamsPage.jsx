@@ -257,22 +257,40 @@ export default function TeamsPage() {
     <div className="w-full">
       <div className="print:hidden">
         <div className="mb-6 px-4 w-full max-w-none">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Team-Erfassung</h1>
+          <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-[minmax(0,33%)_minmax(0,67%)]">
+            <div className="space-y-3">
+              <h1 className="text-3xl font-bold text-slate-900">Team-Erfassung</h1>
               <p className="text-sm text-slate-600 max-w-2xl">
                 Anzahl der Mannschaften pro Verein und Altersgruppe festlegen.
               </p>
             </div>
-            {removedOrganizers.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setIsRemovedModalOpen(true)}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
-              >
-                entferne Vereine
-              </button>
-            )}
+            <div className="space-y-4 border-t border-slate-200 pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-slate-900">Übersicht</h2>
+                  <p className="text-sm text-slate-600">
+                    Gesamtanzahl der Mannschaften je Altersgruppe und für das Turnier.
+                  </p>
+                </div>
+                {removedOrganizers.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsRemovedModalOpen(true)}
+                    className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                  >
+                    entferne Vereine
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+                {Object.entries(getTournamentTotals()).map(([key, value]) => (
+                  <div key={key} className="rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-900 shadow-sm">
+                    <div className="font-semibold text-slate-900">{key === 'total' ? 'Gesamt' : key}</div>
+                    <div>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -354,23 +372,6 @@ export default function TeamsPage() {
             </div>
           );
         })}
-      </div>
-
-      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 mb-6 mx-4 max-w-7xl">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Übersicht</h2>
-            <p className="text-sm text-slate-600">Gesamtanzahl der Mannschaften je Altersgruppe und für das Turnier.</p>
-          </div>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-            {Object.entries(getTournamentTotals()).map(([key, value]) => (
-              <div key={key} className="rounded-2xl bg-white px-3 py-2 text-sm text-slate-900 shadow-sm">
-                <div className="font-semibold">{key === 'total' ? 'Gesamt' : key}</div>
-                <div>{value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Page action buttons are rendered in the fixed footer */}
