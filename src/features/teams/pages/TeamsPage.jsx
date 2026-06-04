@@ -138,7 +138,7 @@ export default function TeamsPage() {
   const getAgeGroupTooltip = (count) => {
     switch (count) {
       case 0:
-        return "keine Mannschaft gemeldet - Altersklasse wird im Spielplan übersprungen";
+        return "keine Mannschaft gemeldet - Altersgruppe wird im Spielplan übersprungen";
       case 1:
         return "nur 1 Mannschaft gemeldet, es sind mindestens 2 Mannschaften notwendig.";
       case 2:
@@ -302,10 +302,18 @@ export default function TeamsPage() {
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                 {Object.entries(getTournamentTotals()).map(([key, value]) => {
                   const isAgeGroup = AGE_GROUPS.includes(key);
+                  const isError = isAgeGroup && value <= 1;
+                  const isWarning = isAgeGroup && value === 2;
+                  let tileClasses = 'bg-slate-50';
+                  if (isError) {
+                    tileClasses = 'bg-rose-50 border border-rose-200';
+                  } else if (isWarning) {
+                    tileClasses = 'bg-amber-50 border border-amber-200';
+                  }
                   return (
                     <div
                       key={key}
-                      className="group relative rounded-2xl bg-slate-50 px-3 py-3 text-sm text-slate-900 shadow-sm"
+                      className={`group relative rounded-2xl px-3 py-3 text-sm text-slate-900 shadow-sm ${tileClasses}`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="font-semibold text-slate-900">{key === 'total' ? 'Gesamt' : key}</div>
