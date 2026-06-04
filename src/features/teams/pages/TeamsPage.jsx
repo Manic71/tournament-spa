@@ -63,6 +63,7 @@ export default function TeamsPage() {
   const [guestClubName, setGuestClubName] = useState("");
   const [guestClubs, setGuestClubs] = useState(() => loadGuestClubs());
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [isRemovedModalOpen, setIsRemovedModalOpen] = useState(false);
   const [removedOrganizers, setRemovedOrganizers] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
   const { setFooterActions } = useOutletContext();
@@ -256,45 +257,24 @@ export default function TeamsPage() {
     <div className="w-full">
       <div className="print:hidden">
         <div className="mb-6 px-4 w-full max-w-none">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Team-Erfassung</h1>
-          <p className="text-sm text-slate-600 max-w-2xl">
-            Anzahl der Mannschaften pro Verein und Altersgruppe festlegen.
-          </p>
-        </div>
-
-      <div className="mb-4 px-4 w-full max-w-none">
-        {removedOrganizers.length > 0 && (
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-900">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <strong>{removedOrganizers.length}</strong> entfernte Vereine
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {removedOrganizers.map((organizerId) => {
-                  const organizer = allOrganizers.find((o) => o.id === organizerId);
-                  return (
-                    <button
-                      key={organizerId}
-                      type="button"
-                      onClick={() => handleRestoreOrganizer(organizerId)}
-                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-900 hover:bg-slate-100 transition"
-                    >
-                      Wieder hinzufügen: {organizer?.name}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={handleRestoreAll}
-                  className="rounded-full border border-slate-300 bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-900 hover:bg-slate-200 transition"
-                >
-                  Alle wieder hinzufügen
-                </button>
-              </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">Team-Erfassung</h1>
+              <p className="text-sm text-slate-600 max-w-2xl">
+                Anzahl der Mannschaften pro Verein und Altersgruppe festlegen.
+              </p>
             </div>
+            {removedOrganizers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsRemovedModalOpen(true)}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+              >
+                entferne Vereine
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </div>
 
       <div className="grid grid-cols-1 gap-4 mb-6 px-4 w-full max-w-none">
         {visibleOrganizers.map((organizer) => {
@@ -443,6 +423,70 @@ export default function TeamsPage() {
                   className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
                 >
                   Gastverein hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isRemovedModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Entfernte Vereine</h2>
+                <p className="text-sm text-slate-600">Wähle Vereine aus, die wieder zum Turnier hinzugefügt werden sollen.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRemovedModalOpen(false)}
+                className="rounded-full bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="mt-5 space-y-4">
+              {removedOrganizers.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  Es sind derzeit keine entfernten Vereine vorhanden.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {removedOrganizers.map((organizerId) => {
+                    const organizer = allOrganizers.find((o) => o.id === organizerId);
+                    return (
+                      <div key={organizerId} className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-slate-900 font-medium">{organizer?.name}</div>
+                        <button
+                          type="button"
+                          onClick={() => handleRestoreOrganizer(organizerId)}
+                          className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                        >
+                          Wieder hinzufügen
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsRemovedModalOpen(false)}
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleRestoreAll();
+                    setIsRemovedModalOpen(false);
+                  }}
+                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  Alle wieder hinzufügen
                 </button>
               </div>
             </div>
