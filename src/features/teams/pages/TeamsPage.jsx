@@ -9,6 +9,12 @@ const GUEST_STORAGE_KEY = "guestClubs";
 const BETREUER_STORAGE_KEY = "betreuerList";
 const AGE_GROUPS = ["U8", "U9", "U10"];
 
+const AGE_GROUP_COLORS = {
+  U8:  "bg-sky-100 text-sky-700",
+  U9:  "bg-emerald-100 text-emerald-700",
+  U10: "bg-rose-100 text-rose-700",
+};
+
 function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
   const currentValue = Number(value) || min;
 
@@ -445,7 +451,7 @@ export default function TeamsPage() {
                     <div className="flex h-full rounded-2xl border border-slate-200 bg-slate-50 divide-x divide-slate-200">
                       {/* linke Hälfte: Badge + Stepper */}
                       <div className="w-1/2 px-3 py-2 flex items-center justify-between gap-3">
-                        <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        <span className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${AGE_GROUP_COLORS[ageGroup] ?? "bg-slate-200 text-slate-700"}`}>
                           {ageGroup}
                         </span>
                         <div className="w-24">
