@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
+import QRCode from "qrcode";
 import { generateSchedule, getFieldNames } from "../utils/scheduleAlgorithm";
 import { AGE_GROUPS, AGE_GROUP_COLORS, STORAGE_KEYS } from "../../../data/constants";
 import { parseMinutes, formatMinutes } from "../../../lib/timeUtils";
@@ -613,6 +614,123 @@ ${pages}
     localStorage.setItem(STORAGE_KEYS.SCHEDULE_FIXED, String(next));
   };
 
+  const handlePrintQRCodes = async () => {
+    if (schedule.length === 0) {
+      alert("Kein Spielplan vorhanden. Bitte zuerst einen Spielplan erstellen.");
+      return;
+    }
+
+    let betreuerList = {};
+    let teamsData    = {};
+    try { const r = localStorage.getItem(STORAGE_KEYS.BETREUER_LIST); if (r) betreuerList = JSON.parse(r); } catch {}
+    try { const r = localStorage.getItem(STORAGE_KEYS.TEAMS_LIST);   if (r) teamsData    = JSON.parse(r); } catch {}
+
+    const nameToId = {};
+    Object.values(teamsData).forEach(t => { nameToId[t.organizerName] = t.organizerId; });
+
+    const teamMap = new Map();
+    schedule.forEach(game => {
+      for (const teamName of [game.home, game.away]) {
+        const key = `${game.ageGroup}:${teamName}`;
+        if (teamMap.has(key)) continue;
+        const clubName    = teamName.replace(/\s+\d+$/, "");
+        const numMatch    = teamName.match(/\s+(\d+)$/);
+        const teamNumber  = numMatch ? parseInt(numMatch[1], 10) : 1;
+        const organizerId = nameToId[clubName];
+        const betreuerKey = organizerId !== undefined ? `${organizerId}_${game.ageGroup}_${teamNumber}` : null;
+        const betreuer    = (betreuerKey && betreuerList[betreuerKey]?.trim()) || "----";
+        teamMap.set(key, { ageGroup: game.ageGroup, name: teamName, clubName, teamNumber, betreuer });
+      }
+    });
+
+    const AG_ORDER = { U8: 0, U9: 1, U10: 2 };
+    const sortedTeams = [...teamMap.values()].sort((a, b) => {
+      const clubDiff = a.clubName.localeCompare(b.clubName, "de");
+      if (clubDiff !== 0) return clubDiff;
+      const agDiff = (AG_ORDER[a.ageGroup] ?? 9) - (AG_ORDER[b.ageGroup] ?? 9);
+      if (agDiff !== 0) return agDiff;
+      return a.teamNumber - b.teamNumber;
+    });
+
+    const origin = window.location.origin;
+
+    const cards = await Promise.all(sortedTeams.map(async (team) => {
+      const teamGames = schedule
+        .filter(g => g.ageGroup === team.ageGroup && (g.home === team.name || g.away === team.name))
+        .sort((a, b) => a.round - b.round)
+        .map(g => ({ round: g.round, time: g.time, field: g.field, home: g.home, away: g.away }));
+
+      const payload = {
+        v: 1,
+        name:        team.name,
+        ageGroup:    team.ageGroup,
+        betreuer:    team.betreuer,
+        venue:       settings?.venue   || "",
+        date:        settings?.date    || "",
+        gameDurMin:  Number(settings?.gameDuration)  || 10,
+        breakDurMin: Number(settings?.breakDuration) || 5,
+        games:       teamGames,
+      };
+
+      // URL-safe Base64 (base64url): replace + → - and / → _ and strip = padding
+      // Standard Base64 (+/=) is not URL-safe and causes iOS to misread the hash.
+      const json    = JSON.stringify(payload);
+      const bytes   = new TextEncoder().encode(json);
+      const binary  = Array.from(bytes, b => String.fromCharCode(b)).join("");
+      const encoded = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
+      const url       = `${origin}/viewer#${encoded}`;
+      const qrDataUrl = await QRCode.toDataURL(url, {
+        width: 512,
+        margin: 2,
+        errorCorrectionLevel: "L",
+      });
+
+      return { team, qrDataUrl };
+    }));
+
+    const cardHtml = cards.map(({ team, qrDataUrl }) => {
+      const hasBetreuer = team.betreuer && team.betreuer !== "----";
+      return `<div class="card">
+  <div class="team-name">${escapeHtml(team.name)}</div>
+  <div class="age-group">${team.ageGroup}</div>
+  ${hasBetreuer ? `<div class="betreuer">Betreuer: ${escapeHtml(team.betreuer)}</div>` : ""}
+  <img class="qr" src="${qrDataUrl}" alt="QR Code ${escapeHtml(team.name)}" />
+  <div class="hint">Spielplan online abrufen</div>
+</div>`;
+    }).join("\n");
+
+    const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>QR-Codes Spielpläne</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; background: #fff; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; padding: 8mm; }
+    .card { border: 0.75pt solid #ccc; border-radius: 4pt; padding: 5mm; display: flex; flex-direction: column; align-items: center; text-align: center; break-inside: avoid; }
+    .team-name { font-size: 13pt; font-weight: bold; margin-bottom: 1mm; }
+    .age-group { font-size: 10pt; color: #555; margin-bottom: 2mm; }
+    .betreuer { font-size: 8pt; color: #777; margin-bottom: 2mm; }
+    .qr { width: 60mm; height: 60mm; margin: 3mm 0 2mm; image-rendering: pixelated; }
+    .hint { font-size: 7pt; color: #aaa; }
+    @media print { html, body { margin: 0; } }
+  </style>
+  <script>window.onload = function() { setTimeout(function() { window.print(); }, 600); }</script>
+</head>
+<body>
+  <div class="grid">
+${cardHtml}
+  </div>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
+    win.document.write(html);
+    win.document.close();
+  };
+
   const teamTotals = useMemo(() => loadTeamTotals(), []);
   const gameCounts = useMemo(() => {
     const perGroup = AGE_GROUPS.reduce((acc, ag) => {
@@ -667,6 +785,13 @@ ${pages}
               >
                 Spielpläne drucken
               </button>
+              <button
+                type="button"
+                onClick={handlePrintQRCodes}
+                className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+              >
+                QR-Codes drucken
+              </button>
             </>
           )}
           <button
@@ -680,7 +805,7 @@ ${pages}
       </div>
     );
     return () => setFooterActions(null);
-  }, [handleCreateSchedule, handleResetSchedule, handlePrintFieldOccupancy, handlePrintSchedule, handleToggleFixed, setFooterActions]);
+  }, [handleCreateSchedule, handleResetSchedule, handlePrintFieldOccupancy, handlePrintSchedule, handlePrintQRCodes, handleToggleFixed, setFooterActions]);
 
   return (
     <div className="w-full">

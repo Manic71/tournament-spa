@@ -3,6 +3,7 @@ import MainLayout from "../layouts/MainLayout";
 import TournamentSettingsPage from "../../features/tournament-settings/pages/TournamentSettingsPage";
 import TeamsPage from "../../features/teams/pages/TeamsPage";
 import SchedulePage from "../../features/schedule/pages/SchedulePage";
+import ViewerPage from "../../features/viewer/pages/ViewerPage";
 
 function Placeholder({ name }) {
   return (
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
       { path: "teams", element: <TeamsPage /> },
       { path: "einstellungen", element: <TournamentSettingsPage /> },
       { path: "live", element: <Placeholder name="Live-Ticker" /> },
-      { path: "viewer", element: <Placeholder name="Viewer" /> },
+      { path: "viewer", element: <ViewerPage /> },
     ]
   }
 ]);
