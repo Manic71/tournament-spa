@@ -345,6 +345,9 @@ export default function SchedulePage() {
   const [fieldOverviewOpen, setFieldOverviewOpen] = useState(true);
   const [isTeamOverviewOpen, setIsTeamOverviewOpen] = useState(false);
   const [teamOverviewGroupBy, setTeamOverviewGroupBy] = useState("club");
+  const [scheduleFixed, setScheduleFixed] = useState(() => {
+    try { return localStorage.getItem("scheduleFixed") === "true"; } catch { return false; }
+  });
 
   const [schedule, setSchedule] = useState(() => {
     try {
@@ -385,6 +388,252 @@ export default function SchedulePage() {
     setSchedule([]);
   };
 
+  const handlePrintFieldOccupancy = () => {
+    if (schedule.length === 0) {
+      alert("Kein Spielplan vorhanden. Bitte zuerst einen Spielplan erstellen.");
+      return;
+    }
+
+    const numFields = Number(settings?.numberOfFields) || 1;
+    const fields    = getFieldNames(numFields);
+
+    // game lookup: field → round → game
+    const gameByFieldRound = {};
+    fields.forEach(f => { gameByFieldRound[f] = {}; });
+    schedule.forEach(g => { if (gameByFieldRound[g.field]) gameByFieldRound[g.field][g.round] = g; });
+
+    const fieldPages = fields.map((field, idx) => {
+      let lastGameRound = 0;
+      schedule.forEach(g => { if (g.field === field && g.round > lastGameRound) lastGameRound = g.round; });
+
+      const rows = Array.from({ length: lastGameRound }, (_, i) => i + 1).map(round => {
+        const game  = gameByFieldRound[field][round];
+        const times = getRoundTimes(round, settings);
+        if (game) {
+          return `<tr>
+            <td>${round}</td>
+            <td>${times.start}</td>
+            <td>${game.ageGroup}</td>
+            <td>${game.home} : ${game.away}</td>
+          </tr>`;
+        }
+        return `<tr class="free-row">
+          <td>${round}</td>
+          <td>${times.start}</td>
+          <td>--</td>
+          <td>---- frei ----</td>
+        </tr>`;
+      }).join("");
+
+      return `<div class="field-page${idx === fields.length - 1 ? " last" : ""}">
+  <h1>${field}</h1>
+  <table>
+    <thead><tr>
+      <th>Runde</th><th>Uhrzeit</th><th>Altersgruppe</th><th>Spiel</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="end-row"><td colspan="4">Ende des Spieltags</td></tr>
+    </tbody>
+  </table>
+</div>`;
+    }).join("\n");
+
+    const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Feldbelegung</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; background: #fff; }
+    .field-page { page-break-after: always; }
+    .field-page.last { page-break-after: avoid; }
+    h1 { text-align: center; font-size: 22pt; font-weight: bold; margin-bottom: 12mm; text-transform: uppercase; letter-spacing: 4px; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 4px 10px 6px; text-align: left; font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1.5pt solid #000; }
+    tbody td { padding: 5px 10px; font-size: 11pt; }
+    .free-row td { color: #888; font-style: italic; }
+    .end-row td { padding-top: 10px; font-style: italic; color: #555; border-top: 0.75pt solid #aaa; }
+    @media print { html, body { margin: 0; } }
+  </style>
+  <script>window.onload = function() { window.print(); }</script>
+</head>
+<body>
+${fieldPages}
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
+    win.document.write(html);
+    win.document.close();
+  };
+
+  const handlePrintSchedule = () => {
+    if (schedule.length === 0) {
+      alert("Kein Spielplan vorhanden. Bitte zuerst einen Spielplan erstellen.");
+      return;
+    }
+
+    // Load supporting data from localStorage
+    let betreuerList = {};
+    let teamsData    = {};
+    try { const r = localStorage.getItem("betreuerList"); if (r) betreuerList = JSON.parse(r); } catch {}
+    try { const r = localStorage.getItem("teamsList");    if (r) teamsData    = JSON.parse(r); } catch {}
+
+    // Build organizerName → organizerId mapping (needed to look up betreuer key)
+    const nameToId = {};
+    Object.values(teamsData).forEach(t => { nameToId[t.organizerName] = t.organizerId; });
+
+    // Collect unique teams from schedule, enrich with betreuer
+    const teamMap = new Map();
+    schedule.forEach(game => {
+      for (const teamName of [game.home, game.away]) {
+        const key = `${game.ageGroup}:${teamName}`;
+        if (teamMap.has(key)) continue;
+        const clubName      = teamName.replace(/\s+\d+$/, "");
+        const numMatch      = teamName.match(/\s+(\d+)$/);
+        const teamNumber    = numMatch ? parseInt(numMatch[1], 10) : 1;
+        const organizerId   = nameToId[clubName];
+        const betreuerKey   = organizerId !== undefined ? `${organizerId}_${game.ageGroup}_${teamNumber}` : null;
+        const betreuer      = (betreuerKey && betreuerList[betreuerKey]?.trim()) || "----";
+        teamMap.set(key, { ageGroup: game.ageGroup, name: teamName, clubName, teamNumber, betreuer });
+      }
+    });
+
+    // Sort: club name, then U8 → U9 → U10, then team number
+    const AG_ORDER = { U8: 0, U9: 1, U10: 2 };
+    const sortedTeams = [...teamMap.values()].sort((a, b) => {
+      const clubDiff = a.clubName.localeCompare(b.clubName, "de");
+      if (clubDiff !== 0) return clubDiff;
+      const agDiff = (AG_ORDER[a.ageGroup] ?? 9) - (AG_ORDER[b.ageGroup] ?? 9);
+      if (agDiff !== 0) return agDiff;
+      return a.teamNumber - b.teamNumber;
+    });
+
+    const formatDate = (d) => {
+      if (!d) return "–";
+      const [y, m, day] = d.split("-");
+      return `${day}.${m}.${y}`;
+    };
+
+    const gameDurMin  = Number(settings?.gameDuration)  || 10;
+    const breakDurMin = Number(settings?.breakDuration) || 5;
+    const formattedDate = formatDate(settings?.date);
+
+    // Generate HTML for a single team section (returns "" when team has no games)
+    const makeTeamSection = (team) => {
+      const { ageGroup, name, betreuer } = team;
+      const teamGames = schedule
+        .filter(g => g.ageGroup === ageGroup && (g.home === name || g.away === name))
+        .sort((a, b) => a.round - b.round);
+      if (teamGames.length === 0) return "";
+      const lastGame = teamGames[teamGames.length - 1];
+      const endTime  = getRoundTimes(lastGame.round, settings).end;
+      const rows = teamGames.map(game => {
+        const times = getRoundTimes(game.round, settings);
+        return `<tr>
+          <td>${game.round}</td>
+          <td>${times.start}</td>
+          <td>${game.field}</td>
+          <td>${game.home} : ${game.away}</td>
+        </tr>`;
+      }).join("");
+      return `<div class="team-section">
+  <div class="hdr">
+    <div class="hdr-row1">
+      <span class="team-name">${name} (${ageGroup})</span>
+      <span class="betreuer-label">Betreuer: ${betreuer}</span>
+    </div>
+    <div class="hdr-row2">
+      <span>${formattedDate}</span>
+      <span>Spieldauer: ${gameDurMin} min (Pause: ${breakDurMin} min)</span>
+      <span>Anzahl Spiele: ${teamGames.length}</span>
+      <span>Ende des Spieltags: ${endTime}</span>
+    </div>
+    <div class="hdr-row3">
+      <strong>Wichtiger HINWEIS:</strong> Welche Runde aktuell läuft, wird auf der Anzeigetafel unter HEIM angezeigt.
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Runde</th><th>Uhrzeit</th><th>Spielfeld</th><th>Spiel</th>
+    </tr></thead>
+    <tbody>
+      ${rows}
+    </tbody>
+  </table>
+</div>`;
+    };
+
+    // Group teams by club, then chunk each club into pages of ≤3 teams.
+    // Teams from different clubs always start on a new page.
+    const pageGroups = [];
+    let prevClub = null;
+    let chunk    = [];
+    for (const team of sortedTeams) {
+      if (team.clubName !== prevClub || chunk.length >= 3) {
+        if (chunk.length > 0) pageGroups.push(chunk);
+        chunk    = [team];
+        prevClub = team.clubName;
+      } else {
+        chunk.push(team);
+      }
+    }
+    if (chunk.length > 0) pageGroups.push(chunk);
+
+    const pages = pageGroups.map((group, pageIdx) => {
+      const sections = group.map(makeTeamSection).filter(Boolean);
+      if (sections.length === 0) return "";
+      const isLast = pageIdx === pageGroups.length - 1;
+      return `<div class="team-page${isLast ? " last" : ""}">
+${sections.join('\n<div class="cut-line"></div>\n')}
+</div>`;
+    }).filter(Boolean).join("\n");
+
+    const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Spielpläne</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; background: #fff; }
+    .team-page { page-break-after: always; }
+    .team-page.last { page-break-after: avoid; }
+    .cut-line { border-top: 1.5pt dashed #777; margin: 7mm 0; }
+    .hdr { margin-bottom: 6mm; border-bottom: 2pt solid #000; padding-bottom: 3mm; }
+    .hdr-row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2mm; }
+    .team-name { font-size: 18pt; font-weight: bold; }
+    .betreuer-label { font-size: 11pt; }
+    .hdr-row2 { display: flex; gap: 20px; font-size: 9pt; color: #444; }
+    .hdr-row3 { margin-top: 3mm; font-size: 9pt; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { padding: 4px 10px 6px; text-align: left; font-size: 8pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1.5pt solid #000; }
+    tbody td { padding: 5px 10px; font-size: 11pt; }
+    .end-row td { padding-top: 10px; font-weight: bold; border-top: 0.75pt solid #aaa; }
+    @media print { html, body { margin: 0; } }
+  </style>
+  <script>window.onload = function() { window.print(); }</script>
+</head>
+<body>
+${pages}
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
+    win.document.write(html);
+    win.document.close();
+  };
+
+  const handleToggleFixed = () => {
+    const next = !scheduleFixed;
+    setScheduleFixed(next);
+    localStorage.setItem("scheduleFixed", String(next));
+  };
+
   const teamTotals = useMemo(() => loadTeamTotals(), []);
   const gameCounts = useMemo(() => {
     const perGroup = AGE_GROUPS.reduce((acc, ag) => {
@@ -423,17 +672,36 @@ export default function SchedulePage() {
           >
             Übersicht Spiele je Mannschaft
           </button>
+          {scheduleFixed && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrintFieldOccupancy}
+                className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+              >
+                Feldbelegung drucken
+              </button>
+              <button
+                type="button"
+                onClick={handlePrintSchedule}
+                className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+              >
+                Spielpläne drucken
+              </button>
+            </>
+          )}
           <button
             type="button"
-            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+            onClick={handleToggleFixed}
+            className={`w-full rounded-md px-4 py-2 text-sm font-medium transition sm:w-auto ${scheduleFixed ? "bg-slate-900 text-white hover:bg-slate-700" : "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50"}`}
           >
-            Spielplan fixieren
+            {scheduleFixed ? "Spielplan freigeben" : "Spielplan fixieren"}
           </button>
         </div>
       </div>
     );
     return () => setFooterActions(null);
-  }, [handleCreateSchedule, handleResetSchedule, setFooterActions]);
+  }, [handleCreateSchedule, handleResetSchedule, handlePrintFieldOccupancy, handlePrintSchedule, handleToggleFixed, setFooterActions]);
 
   return (
     <div className="w-full">
@@ -441,7 +709,14 @@ export default function SchedulePage() {
       <div className="mb-6 px-4 w-full max-w-none">
         <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-[minmax(0,33%)_minmax(0,67%)]">
           <div className="space-y-3">
-            <h1 className="text-3xl font-bold text-slate-900">Spielplan</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-3xl font-bold text-slate-900">Spielplan</h1>
+              {scheduleFixed && (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-slate-600" title="Spielplan fixiert">
+                  <path fillRule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clipRule="evenodd" />
+                </svg>
+              )}
+            </div>
             <p className="text-sm text-slate-600">
               Automatische Spielplanerstellung für alle Altersgruppen und Spielfelder.
             </p>
@@ -478,7 +753,7 @@ export default function SchedulePage() {
         </CollapsibleSection>
 
         <CollapsibleSection
-          title="Übersicht Spielfeld-Belegung"
+          title="Belegung Spielfelder"
           isOpen={fieldOverviewOpen}
           onToggle={() => setFieldOverviewOpen((prev) => !prev)}
         >
