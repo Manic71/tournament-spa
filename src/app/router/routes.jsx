@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import TournamentSettingsPage from "../../features/tournament-settings/pages/TournamentSettingsPage";
 import TeamsPage from "../../features/teams/pages/TeamsPage";
+import SchedulePage from "../../features/schedule/pages/SchedulePage";
 
 function Page({ name }) {
   return (
@@ -16,7 +17,7 @@ export const router = createBrowserRouter([
   {
     element: <MainLayout />,
     children: [
-      { index: true, element: <Page name="Spielplan" /> },
+      { index: true, element: <SchedulePage /> },
       { path: "teams", element: <TeamsPage /> },
       { path: "einstellungen", element: <TournamentSettingsPage /> },
       { path: "live", element: <Page name="Live-Ticker" /> },
