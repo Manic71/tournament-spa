@@ -167,11 +167,7 @@ export default function TournamentSettingsPage() {
       return;
     }
 
-    // Einstellungen in localStorage speichern
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    console.log("Einstellungen gespeichert:", settings);
-    
-    // Erfolgsmeldung anzeigen
     setSaveMessage("✓ Einstellungen gespeichert!");
     setTimeout(() => setSaveMessage(""), 3000);
   };

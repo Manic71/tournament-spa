@@ -4,11 +4,11 @@ import TournamentSettingsPage from "../../features/tournament-settings/pages/Tou
 import TeamsPage from "../../features/teams/pages/TeamsPage";
 import SchedulePage from "../../features/schedule/pages/SchedulePage";
 
-function Page({ name }) {
+function Placeholder({ name }) {
   return (
     <div className="p-6 bg-white rounded shadow-sm">
       <h1 className="text-2xl font-semibold">{name}</h1>
-      <p className="mt-2 text-slate-600">Beispielseite: {name}</p>
+      <p className="mt-2 text-slate-600">Diese Seite ist noch in Entwicklung.</p>
     </div>
   );
 }
@@ -20,9 +20,8 @@ export const router = createBrowserRouter([
       { index: true, element: <SchedulePage /> },
       { path: "teams", element: <TeamsPage /> },
       { path: "einstellungen", element: <TournamentSettingsPage /> },
-      { path: "live", element: <Page name="Live-Ticker" /> },
-      { path: "druck", element: <Page name="Druck" /> },
-      { path: "viewer", element: <Page name="Viewer" /> }
+      { path: "live", element: <Placeholder name="Live-Ticker" /> },
+      { path: "viewer", element: <Placeholder name="Viewer" /> },
     ]
   }
 ]);

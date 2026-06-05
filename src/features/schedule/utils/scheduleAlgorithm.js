@@ -1,4 +1,5 @@
-const AGE_GROUPS = ["U8", "U9", "U10"];
+import { AGE_GROUPS } from "../../../data/constants.js";
+import { parseMinutes, formatMinutes } from "../../../lib/timeUtils.js";
 
 export function getFieldNames(count) {
   const n = Number(count) || 1;
@@ -7,17 +8,6 @@ export function getFieldNames(count) {
   return ["Feld A", "Feld B", "Feld C"];
 }
 
-function parseTimeToMinutes(timeStr) {
-  if (!timeStr) return 9 * 60;
-  const [h, m] = timeStr.split(":").map(Number);
-  return h * 60 + m;
-}
-
-function minutesToTimeStr(total) {
-  const h = Math.floor(total / 60) % 24;
-  const m = total % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
 
 // Circle-method round-robin: returns array of rounds, each round = [{home, away}, ...]
 function buildRRRounds(teams) {
@@ -195,7 +185,7 @@ function compactSchedule(scheduled, fields, pauseRounds, gameDurMin, breakDurMin
 
         game.round = targetRound;
         game.field = freeField;
-        game.time  = minutesToTimeStr(startMins + (targetRound - 1) * (gameDurMin + breakDurMin));
+        game.time  = formatMinutes(startMins + (targetRound - 1) * (gameDurMin + breakDurMin));
         improved = true;
         break outer; // restart with fresh teamRounds
       }
@@ -231,7 +221,7 @@ export function generateSchedule(settings, teamsData) {
   const gameDurMin  = Number(settings.gameDuration)   || 10;
   const breakDurMin = Number(settings.breakDuration)  || 5;
   const fields      = getFieldNames(numFields);
-  const startMins   = parseTimeToMinutes(settings.startTime);
+  const startMins   = parseMinutes(settings.startTime);
 
   // Build alphabetically-sorted team lists per age group
   const agTeams = { U8: [], U9: [], U10: [] };
@@ -359,7 +349,7 @@ export function generateSchedule(settings, teamsData) {
       scheduled.push({
         round: displayRound,
         gameNumber,
-        time: minutesToTimeStr(roundTimeMins),
+        time: formatMinutes(roundTimeMins),
         field: fields[fieldIdx],
         ageGroup: g.ageGroup,
         home: g.home,

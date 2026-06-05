@@ -2,18 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { organizers } from "../../../data/organizers";
 import { venues } from "../../../data/venues";
+import { AGE_GROUPS, AGE_GROUP_COLORS, STORAGE_KEYS } from "../../../data/constants";
 
-const STORAGE_KEY = "teamsList";
-const SETTINGS_STORAGE_KEY = "tournamentSettings";
-const GUEST_STORAGE_KEY = "guestClubs";
-const BETREUER_STORAGE_KEY = "betreuerList";
-const AGE_GROUPS = ["U8", "U9", "U10"];
-
-const AGE_GROUP_COLORS = {
-  U8:  "bg-sky-100 text-sky-700",
-  U9:  "bg-emerald-100 text-emerald-700",
-  U10: "bg-rose-100 text-rose-700",
-};
+const STORAGE_KEY          = STORAGE_KEYS.TEAMS_LIST;
+const SETTINGS_STORAGE_KEY = STORAGE_KEYS.TOURNAMENT_SETTINGS;
+const GUEST_STORAGE_KEY    = STORAGE_KEYS.GUEST_CLUBS;
+const BETREUER_STORAGE_KEY = STORAGE_KEYS.BETREUER_LIST;
 
 function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
   const currentValue = Number(value) || min;
@@ -181,7 +175,6 @@ export default function TeamsPage() {
 
   const handleSave = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(teams));
-    console.log("Teams gespeichert:", teams);
     setSaveMessage("✓ Teams gespeichert!");
     setTimeout(() => setSaveMessage(""), 3000);
   };

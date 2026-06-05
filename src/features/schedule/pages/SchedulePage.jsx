@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router-dom";
 import { generateSchedule, getFieldNames } from "../utils/scheduleAlgorithm";
+import { AGE_GROUPS, AGE_GROUP_COLORS, STORAGE_KEYS } from "../../../data/constants";
+import { parseMinutes, formatMinutes } from "../../../lib/timeUtils";
+import { escapeHtml } from "../../../lib/htmlUtils";
 
-const AGE_GROUPS = ["U8", "U9", "U10"];
-const SCHEDULE_STORAGE_KEY = "scheduleGames";
+const ALL_FIELDS = ["Feld A", "Feld B", "Feld C"];
 
 function loadTeamTotals() {
   try {
-    const raw = localStorage.getItem("teamsList");
+    const raw = localStorage.getItem(STORAGE_KEYS.TEAMS_LIST);
     if (!raw) return { U8: 0, U9: 0, U10: 0 };
     const teams = JSON.parse(raw);
     return AGE_GROUPS.reduce((acc, ag) => {
@@ -21,32 +23,9 @@ function loadTeamTotals() {
 
 function calculateGames(teamCount) {
   if (teamCount <= 1) return 0;
-  if (teamCount === 2) return 4;          // 2× Hin+Rück = 4 je Team
-  if (teamCount >= 5) return teamCount * 3; // max 6 je Team → n*6/2
-  return teamCount * (teamCount - 1);    // n=3→6, n=4→12 Gesamtspiele
-}
-
-const ALL_FIELDS = ["Feld A", "Feld B", "Feld C"];
-
-const AGE_GROUP_COLORS = {
-  U8:  "bg-sky-100 text-sky-700",
-  U9:  "bg-emerald-100 text-emerald-700",
-  U10: "bg-rose-100 text-rose-700",
-};
-
-function parseMinutes(timeStr) {
-  const [h, m] = (timeStr || "09:00").split(":").map(Number);
-  return h * 60 + m;
-}
-
-function formatMinutes(total) {
-  const h = Math.floor(total / 60) % 24;
-  const m = total % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function addMinutes(timeStr, minutes) {
-  return formatMinutes(parseMinutes(timeStr) + minutes);
+  if (teamCount === 2) return 4;
+  if (teamCount >= 5) return teamCount * 3;
+  return teamCount * (teamCount - 1);
 }
 
 // Returns {start, end, pauseEnd} for any round number, derived from settings.
@@ -346,12 +325,12 @@ export default function SchedulePage() {
   const [isTeamOverviewOpen, setIsTeamOverviewOpen] = useState(false);
   const [teamOverviewGroupBy, setTeamOverviewGroupBy] = useState("club");
   const [scheduleFixed, setScheduleFixed] = useState(() => {
-    try { return localStorage.getItem("scheduleFixed") === "true"; } catch { return false; }
+    try { return localStorage.getItem(STORAGE_KEYS.SCHEDULE_FIXED) === "true"; } catch { return false; }
   });
 
   const [schedule, setSchedule] = useState(() => {
     try {
-      const raw = localStorage.getItem(SCHEDULE_STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEYS.SCHEDULE_GAMES);
       return raw ? JSON.parse(raw) : [];
     } catch {
       return [];
@@ -360,7 +339,7 @@ export default function SchedulePage() {
 
   const [settings, setSettings] = useState(() => {
     try {
-      const raw = localStorage.getItem("tournamentSettings");
+      const raw = localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SETTINGS);
       return raw ? JSON.parse(raw) : {};
     } catch {
       return {};
@@ -369,13 +348,13 @@ export default function SchedulePage() {
 
   const handleCreateSchedule = () => {
     try {
-      const rawTeams    = localStorage.getItem("teamsList");
-      const rawSettings = localStorage.getItem("tournamentSettings");
+      const rawTeams    = localStorage.getItem(STORAGE_KEYS.TEAMS_LIST);
+      const rawSettings = localStorage.getItem(STORAGE_KEYS.TOURNAMENT_SETTINGS);
       if (!rawTeams) { alert("Keine Teamdaten gefunden. Bitte zuerst Teams erfassen und speichern."); return; }
       const teamsData       = JSON.parse(rawTeams);
       const currentSettings = rawSettings ? JSON.parse(rawSettings) : {};
       const result          = generateSchedule(currentSettings, teamsData);
-      localStorage.setItem(SCHEDULE_STORAGE_KEY, JSON.stringify(result));
+      localStorage.setItem(STORAGE_KEYS.SCHEDULE_GAMES, JSON.stringify(result));
       setSchedule(result);
       setSettings(currentSettings);
     } catch (err) {
@@ -384,7 +363,7 @@ export default function SchedulePage() {
   };
 
   const handleResetSchedule = () => {
-    localStorage.removeItem(SCHEDULE_STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEYS.SCHEDULE_GAMES);
     setSchedule([]);
   };
 
@@ -414,7 +393,7 @@ export default function SchedulePage() {
             <td>${round}</td>
             <td>${times.start}</td>
             <td>${game.ageGroup}</td>
-            <td>${game.home} : ${game.away}</td>
+            <td>${escapeHtml(game.home)} : ${escapeHtml(game.away)}</td>
           </tr>`;
         }
         return `<tr class="free-row">
@@ -479,8 +458,8 @@ ${fieldPages}
     // Load supporting data from localStorage
     let betreuerList = {};
     let teamsData    = {};
-    try { const r = localStorage.getItem("betreuerList"); if (r) betreuerList = JSON.parse(r); } catch {}
-    try { const r = localStorage.getItem("teamsList");    if (r) teamsData    = JSON.parse(r); } catch {}
+    try { const r = localStorage.getItem(STORAGE_KEYS.BETREUER_LIST); if (r) betreuerList = JSON.parse(r); } catch {}
+    try { const r = localStorage.getItem(STORAGE_KEYS.TEAMS_LIST);   if (r) teamsData    = JSON.parse(r); } catch {}
 
     // Build organizerName → organizerId mapping (needed to look up betreuer key)
     const nameToId = {};
@@ -537,14 +516,14 @@ ${fieldPages}
           <td>${game.round}</td>
           <td>${times.start}</td>
           <td>${game.field}</td>
-          <td>${game.home} : ${game.away}</td>
+          <td>${escapeHtml(game.home)} : ${escapeHtml(game.away)}</td>
         </tr>`;
       }).join("");
       return `<div class="team-section">
   <div class="hdr">
     <div class="hdr-row1">
-      <span class="team-name">${name} (${ageGroup})</span>
-      <span class="betreuer-label">Betreuer: ${betreuer}</span>
+      <span class="team-name">${escapeHtml(name)} (${ageGroup})</span>
+      <span class="betreuer-label">Betreuer: ${escapeHtml(betreuer)}</span>
     </div>
     <div class="hdr-row2">
       <span>${formattedDate}</span>
@@ -631,7 +610,7 @@ ${pages}
   const handleToggleFixed = () => {
     const next = !scheduleFixed;
     setScheduleFixed(next);
-    localStorage.setItem("scheduleFixed", String(next));
+    localStorage.setItem(STORAGE_KEYS.SCHEDULE_FIXED, String(next));
   };
 
   const teamTotals = useMemo(() => loadTeamTotals(), []);
