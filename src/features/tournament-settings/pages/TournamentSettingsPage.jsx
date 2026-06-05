@@ -221,7 +221,35 @@ export default function TournamentSettingsPage() {
 
   return (
     <div className="w-[90%] max-w-full mx-auto print:max-w-full print:p-0">
-      <h1 className="text-3xl font-bold text-slate-900 mb-4 print:hidden">Turnier Einstellungen</h1>
+
+      <div className="mb-6 print:hidden">
+        <div className="grid gap-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-[minmax(0,33%)_minmax(0,67%)]">
+          <div className="space-y-3">
+            <h1 className="text-3xl font-bold text-slate-900">Turnier Einstellungen</h1>
+            <p className="text-sm text-slate-600">
+              Zeitrahmen, Spielfelder und weitere Turnierparameter konfigurieren.
+            </p>
+          </div>
+          <div className="flex items-center border-t border-slate-200 pt-4 sm:border-t-0 sm:border-l sm:pl-6 sm:pt-0">
+            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className={`rounded-2xl px-3 py-3 text-sm shadow-sm ${hasInvalidTimeRange ? "bg-rose-50 border border-rose-200" : "bg-slate-50"}`}>
+                <div className="font-semibold text-slate-900">Gesamtdauer</div>
+                <div className="text-slate-700">
+                  {hasInvalidTimeRange ? "–" : formatMinutesToHoursMinutes(totalTournamentMinutes)}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm shadow-sm">
+                <div className="font-semibold text-slate-900">Max. Runden</div>
+                <div className="text-slate-700">{maxRounds}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-3 py-3 text-sm shadow-sm">
+                <div className="font-semibold text-slate-900">Max. Anzahl Spiele</div>
+                <div className="text-slate-700">{maxRounds * (Number(settings.numberOfFields) || 1)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6 print:space-y-0">
         
@@ -317,17 +345,6 @@ export default function TournamentSettingsPage() {
             </div>
           )}
         </FormSection>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 print:hidden">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <span className="font-semibold text-slate-900">Gesamtdauer des Turniers:</span>
-            <span>{formatMinutesToHoursMinutes(totalTournamentMinutes)} ({totalTournamentMinutes} Minuten)</span>
-          </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-2">
-            <span className="font-semibold text-slate-900">Maximal mögliche Runden:</span>
-            <span>{maxRounds}</span>
-          </div>
         </div>
 
         {/* Page action buttons are rendered in the fixed footer */}
