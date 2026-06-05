@@ -6,6 +6,7 @@ import { venues } from "../../../data/venues";
 const STORAGE_KEY = "teamsList";
 const SETTINGS_STORAGE_KEY = "tournamentSettings";
 const GUEST_STORAGE_KEY = "guestClubs";
+const BETREUER_STORAGE_KEY = "betreuerList";
 const AGE_GROUPS = ["U8", "U9", "U10"];
 
 function NumberStepper({ label, value, onChange, min = 0, max = 3 }) {
@@ -64,8 +65,18 @@ export default function TeamsPage() {
   const [guestClubs, setGuestClubs] = useState(() => loadGuestClubs());
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [isRemovedModalOpen, setIsRemovedModalOpen] = useState(false);
+  const [isBetreuerModalOpen, setIsBetreuerModalOpen] = useState(false);
   const [removedOrganizers, setRemovedOrganizers] = useState([]);
   const [saveMessage, setSaveMessage] = useState("");
+  const [betreuer, setBetreuer] = useState(() => {
+    const saved = localStorage.getItem(BETREUER_STORAGE_KEY);
+    if (saved) {
+      try { return JSON.parse(saved); } catch { return {}; }
+    }
+    return {};
+  });
+  const [betreuerDraft, setBetreuerDraft] = useState({});
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
   const { setFooterActions } = useOutletContext();
 
   function initializeTeams() {
@@ -180,6 +191,56 @@ export default function TeamsPage() {
     setSaveMessage("");
   };
 
+  const getRegisteredTeamsGrouped = () => {
+    const sortedOrganizers = [...visibleOrganizers].sort((a, b) =>
+      a.name.localeCompare(b.name, "de")
+    );
+    return sortedOrganizers
+      .map((organizer) => {
+        const ageGroupEntries = AGE_GROUPS.map((ageGroup) => {
+          const count = teams[organizer.id]?.[ageGroup] || 0;
+          const teamList = Array.from({ length: count }, (_, i) => ({
+            key: `${organizer.id}_${ageGroup}_${i + 1}`,
+            label: `${organizer.name} ${i + 1} (${ageGroup})`,
+          }));
+          return { ageGroup, teamList };
+        }).filter((ag) => ag.teamList.length > 0);
+        return { organizer, ageGroupEntries };
+      })
+      .filter((group) => group.ageGroupEntries.length > 0);
+  };
+
+  const toggleGroup = (organizerId) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(organizerId)) {
+        next.delete(organizerId);
+      } else {
+        next.add(organizerId);
+      }
+      return next;
+    });
+  };
+
+  const handleBetreuerSave = () => {
+    setBetreuer(betreuerDraft);
+    localStorage.setItem(BETREUER_STORAGE_KEY, JSON.stringify(betreuerDraft));
+    setIsBetreuerModalOpen(false);
+  };
+
+  const handleBetreuerClearAll = () => {
+    setBetreuerDraft({});
+  };
+
+  useEffect(() => {
+    if (isBetreuerModalOpen) {
+      setBetreuerDraft({ ...betreuer });
+      setCollapsedGroups(new Set(visibleOrganizers.map((o) => o.id)));
+    }
+    // intentional snapshot: only sync when modal opens
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBetreuerModalOpen]);
+
   const handleAddGuestClub = () => {
     const trimmedName = guestClubName.trim();
     if (!trimmedName) {
@@ -246,6 +307,13 @@ export default function TeamsPage() {
             className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
           >
             Druck Teilnahme-Statistik
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsBetreuerModalOpen(true)}
+            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 sm:w-auto"
+          >
+            Betreuer verwalten
           </button>
         </div>
       </div>
@@ -531,6 +599,121 @@ export default function TeamsPage() {
                   className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
                 >
                   Alle wieder hinzufügen
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isBetreuerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 flex flex-col max-h-[90vh]">
+            <div className="flex items-start justify-between gap-4 shrink-0">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Betreuer verwalten</h2>
+                <p className="text-sm text-slate-600">Betreuer je gemeldeter Mannschaft eingeben.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsBetreuerModalOpen(false)}
+                className="rounded-full bg-slate-100 px-3 py-2 text-slate-700 hover:bg-slate-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mt-5 overflow-y-auto flex-1 space-y-2 pr-1">
+              {getRegisteredTeamsGrouped().length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                  Es sind noch keine Mannschaften gemeldet.
+                </div>
+              ) : (
+                getRegisteredTeamsGrouped().map(({ organizer, ageGroupEntries }) => {
+                  const isCollapsed = collapsedGroups.has(organizer.id);
+                  return (
+                    <div key={organizer.id} className="overflow-hidden rounded-2xl border border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(organizer.id)}
+                        className="flex w-full items-center justify-between bg-slate-100 px-4 py-3 transition hover:bg-slate-200"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-semibold text-slate-900">{organizer.name}</span>
+                          {(() => {
+                            const allTeams = ageGroupEntries.flatMap((ag) => ag.teamList);
+                            const savedCount = allTeams.filter((t) => betreuerDraft[t.key]?.trim()).length;
+                            return (
+                              <span className="text-xs font-medium text-slate-500">
+                                {savedCount} / {allTeams.length}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                        <span className="text-slate-500 text-xs">{isCollapsed ? "▶" : "▼"}</span>
+                      </button>
+
+                      {!isCollapsed && (
+                        <div className="bg-white">
+                          {ageGroupEntries.map(({ ageGroup, teamList }, agIndex) => (
+                            <React.Fragment key={ageGroup}>
+                              {agIndex > 0 && ageGroupEntries[agIndex - 1].teamList.length > 1 && (
+                                <div className="mx-4 border-t-2 border-slate-200" />
+                              )}
+                              {teamList.map((team) => (
+                                <div
+                                  key={team.key}
+                                  className="flex flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center"
+                                >
+                                  <span className="shrink-0 text-sm text-slate-900 sm:w-56">
+                                    {team.label}
+                                  </span>
+                                  <input
+                                    type="text"
+                                    value={betreuerDraft[team.key] || ""}
+                                    onChange={(e) =>
+                                      setBetreuerDraft((prev) => ({
+                                        ...prev,
+                                        [team.key]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Betreuer eingeben"
+                                    className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                  />
+                                </div>
+                              ))}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:justify-between shrink-0">
+              <button
+                type="button"
+                onClick={handleBetreuerClearAll}
+                className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+              >
+                Alle löschen
+              </button>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setIsBetreuerModalOpen(false)}
+                  className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50"
+                >
+                  Schließen
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBetreuerSave}
+                  className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+                >
+                  Speichern
                 </button>
               </div>
             </div>
