@@ -125,6 +125,90 @@ function earliestRound(game, lastPlayed, pauseRounds) {
   return Math.max(hEarliest, aEarliest);
 }
 
+// Post-scheduling compaction: tries to move each game to the earliest possible
+// round that has a free field and satisfies the rest constraint for both teams.
+// Iterates until no further improvements are possible.
+function compactSchedule(scheduled, fields, pauseRounds, gameDurMin, breakDurMin, startMins) {
+  if (scheduled.length === 0) return;
+
+  function buildTeamRounds() {
+    const map = {};
+    for (const g of scheduled) {
+      const hk = tk(g.ageGroup, g.home);
+      const ak = tk(g.ageGroup, g.away);
+      if (!map[hk]) map[hk] = [];
+      if (!map[ak]) map[ak] = [];
+      map[hk].push(g.round);
+      map[ak].push(g.round);
+    }
+    return map;
+  }
+
+  function canPlayAt(teamKey, targetRound, teamRounds, excludeRound) {
+    const rounds = (teamRounds[teamKey] || []).filter(r => r !== excludeRound);
+    if (rounds.includes(targetRound)) return false; // already playing this round
+    let prev = -Infinity, next = Infinity;
+    for (const r of rounds) {
+      if (r < targetRound && r > prev) prev = r;
+      if (r > targetRound && r < next) next = r;
+    }
+    if (prev !== -Infinity && targetRound - prev <= pauseRounds) return false;
+    if (next !== Infinity  && next - targetRound <= pauseRounds) return false;
+    return true;
+  }
+
+  let improved = true;
+  while (improved) {
+    improved = false;
+    const teamRounds = buildTeamRounds();
+
+    // Build round → used-fields map
+    const roundFields = {};
+    for (const g of scheduled) {
+      if (!roundFields[g.round]) roundFields[g.round] = new Set();
+      roundFields[g.round].add(g.field);
+    }
+
+    // Process games latest-round first so we compact from the back
+    const sortedIdxs = scheduled
+      .map((g, i) => ({ round: g.round, i }))
+      .sort((a, b) => b.round - a.round)
+      .map(x => x.i);
+
+    outer: for (const idx of sortedIdxs) {
+      const game = scheduled[idx];
+      const hk = tk(game.ageGroup, game.home);
+      const ak = tk(game.ageGroup, game.away);
+
+      for (let targetRound = 1; targetRound < game.round; targetRound++) {
+        const usedFields = roundFields[targetRound] || new Set();
+        const freeField  = fields.find(f => !usedFields.has(f));
+        if (!freeField) continue;
+        if (!canPlayAt(hk, targetRound, teamRounds, game.round)) continue;
+        if (!canPlayAt(ak, targetRound, teamRounds, game.round)) continue;
+
+        // Update roundFields incrementally so subsequent iterations in this
+        // pass see the correct state (relevant when break outer is removed).
+        (roundFields[game.round] || new Set()).delete(game.field);
+        if (!roundFields[targetRound]) roundFields[targetRound] = new Set();
+        roundFields[targetRound].add(freeField);
+
+        game.round = targetRound;
+        game.field = freeField;
+        game.time  = minutesToTimeStr(startMins + (targetRound - 1) * (gameDurMin + breakDurMin));
+        improved = true;
+        break outer; // restart with fresh teamRounds
+      }
+    }
+  }
+
+  // Re-sort by round, then field order, and renumber games.
+  scheduled.sort((a, b) =>
+    a.round !== b.round ? a.round - b.round : fields.indexOf(a.field) - fields.indexOf(b.field)
+  );
+  scheduled.forEach((g, i) => { g.gameNumber = i + 1; });
+}
+
 /**
  * Generates a complete tournament schedule.
  *
@@ -185,11 +269,31 @@ export function generateSchedule(settings, teamsData) {
     // gameDuration + breakDuration minutes.
     const roundTimeMins = startMins + (displayRound - 1) * (gameDurMin + breakDurMin);
 
+    // Count remaining games per team to derive urgency scores.
+    // urgency(game) = the minimum last round both teams need to finish all their
+    // remaining games, assuming optimal pacing (play as early as pause allows).
+    // Formula per team: lastPlayed + remainingGames * (pauseRounds + 1).
+    // Higher urgency → game must be scheduled soon or it pushes the tail out.
+    const remainingCount = {};
+    for (const g of remaining) {
+      const hk = tk(g.ageGroup, g.home);
+      const ak = tk(g.ageGroup, g.away);
+      remainingCount[hk] = (remainingCount[hk] || 0) + 1;
+      remainingCount[ak] = (remainingCount[ak] || 0) + 1;
+    }
+
     // Collect all games eligible for this round (with their index in `remaining`).
     const eligible = [];
     for (let i = 0; i < remaining.length; i++) {
       if (earliestRound(remaining[i], lastPlayed, pauseRounds) <= displayRound) {
-        eligible.push({ i, g: remaining[i], conflicts: 0 });
+        const g = remaining[i];
+        const hk = tk(g.ageGroup, g.home);
+        const ak = tk(g.ageGroup, g.away);
+        const hLast = lastPlayed[hk] !== undefined ? lastPlayed[hk] : 0;
+        const aLast = lastPlayed[ak] !== undefined ? lastPlayed[ak] : 0;
+        const hTail = hLast + (remainingCount[hk] || 0) * (pauseRounds + 1);
+        const aTail = aLast + (remainingCount[ak] || 0) * (pauseRounds + 1);
+        eligible.push({ i, g, conflicts: 0, urgency: Math.max(hTail, aTail) });
       }
     }
 
@@ -227,7 +331,8 @@ export function generateSchedule(settings, teamsData) {
         const aNew = ageInRound.has(a.g.ageGroup) ? 1 : 0;
         const bNew = ageInRound.has(b.g.ageGroup) ? 1 : 0;
         if (aNew !== bNew) return aNew - bNew;
-        return a.conflicts - b.conflicts;
+        if (b.urgency !== a.urgency) return b.urgency - a.urgency; // most urgent first
+        return a.conflicts - b.conflicts; // fewest conflicts as tiebreaker
       });
 
       const chosen = candidates[0];
@@ -265,5 +370,6 @@ export function generateSchedule(settings, teamsData) {
     // eligibility for at least one game), so the loop always terminates.
   }
 
+  compactSchedule(scheduled, fields, pauseRounds, gameDurMin, breakDurMin, startMins);
   return scheduled;
 }
