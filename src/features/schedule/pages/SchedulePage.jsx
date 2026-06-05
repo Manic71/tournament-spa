@@ -5,6 +5,7 @@ import { generateSchedule, getFieldNames } from "../utils/scheduleAlgorithm";
 import { AGE_GROUPS, AGE_GROUP_COLORS, STORAGE_KEYS } from "../../../data/constants";
 import { parseMinutes, formatMinutes } from "../../../lib/timeUtils";
 import { escapeHtml } from "../../../lib/htmlUtils";
+import { venues } from "../../../data/venues";
 
 const ALL_FIELDS = ["Feld A", "Feld B", "Feld C"];
 
@@ -660,12 +661,15 @@ ${pages}
         .sort((a, b) => a.round - b.round)
         .map(g => ({ round: g.round, time: g.time, field: g.field, home: g.home, away: g.away }));
 
+      const venueId   = Number(settings?.venue);
+      const venueName = venues.find(v => v.id === venueId)?.name || "";
+
       const payload = {
         v: 1,
         name:        team.name,
         ageGroup:    team.ageGroup,
         betreuer:    team.betreuer,
-        venue:       settings?.venue   || "",
+        venue:       venueName,
         date:        settings?.date    || "",
         gameDurMin:  Number(settings?.gameDuration)  || 10,
         breakDurMin: Number(settings?.breakDuration) || 5,
