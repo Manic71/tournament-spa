@@ -1,8 +1,16 @@
 import React, { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Calendar, Users, Settings, Radio, Eye } from "lucide-react";
 
-function NavItem({ to, children, icon: Icon }) {
+function NavItem({ to, children, icon: Icon, disabled }) {
+  if (disabled) {
+    return (
+      <span className="flex items-center gap-2 px-3 py-2 rounded text-slate-300 cursor-not-allowed select-none">
+        {Icon && <Icon size={18} />}
+        {children}
+      </span>
+    );
+  }
   return (
     <NavLink
       to={to}
@@ -18,17 +26,20 @@ function NavItem({ to, children, icon: Icon }) {
 
 export default function MainLayout() {
   const [footerActions, setFooterActions] = useState(null);
+  const location = useLocation();
+  const isViewer = location.pathname === "/viewer" && location.hash !== "";
+
   return (
     <div className="min-h-screen flex flex-col bg-white">
       <header className="fixed inset-x-0 top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-slate-900">OÖHV Mini-Spieltag</h1>
           <nav className="flex gap-2">
-            <NavItem to="/einstellungen" icon={Settings}>Einstellungen</NavItem>
-            <NavItem to="/teams" icon={Users}>Teams</NavItem>
-            <NavItem to="/" icon={Calendar}>Spielplan</NavItem>
-            <NavItem to="/viewer" icon={Eye}>Viewer</NavItem>
-            <NavItem to="/live" icon={Radio}>Live</NavItem>
+            <NavItem to="/einstellungen" icon={Settings} disabled={isViewer}>Einstellungen</NavItem>
+            <NavItem to="/teams" icon={Users} disabled={isViewer}>Teams</NavItem>
+            <NavItem to="/" icon={Calendar} disabled={isViewer}>Spielplan</NavItem>
+            <NavItem to="/viewer" icon={Eye} disabled={isViewer}>Viewer</NavItem>
+            <NavItem to="/live" icon={Radio} disabled={isViewer}>Live</NavItem>
           </nav>
         </div>
       </header>
