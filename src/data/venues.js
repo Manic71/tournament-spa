@@ -9,4 +9,5 @@ export const venues = [
   { id: 5, name: "Sporthalle Pernau (Wels)" },
   { id: 6, name: "Sporthalle Vöklabruck (Vöklabruck)" },
   { id: 7, name: "Sportzentrum Traun (Traun)" },
+   { id: 8, name: "Sportmittelschule Lambach (Lambach)" },
   ];
