@@ -9,6 +9,27 @@ import { venues } from "../../../data/venues";
 
 const ALL_FIELDS = ["Feld A", "Feld B", "Feld C"];
 
+// Renders HTML in a hidden iframe and triggers the browser print dialog.
+// The iframe is removed automatically after the dialog closes.
+// This keeps the admin app focused — no separate tab or window opens.
+function printViaIframe(html) {
+  const blob   = new Blob([html], { type: "text/html" });
+  const blobUrl = URL.createObjectURL(blob);
+  const iframe  = document.createElement("iframe");
+  iframe.style.cssText = "position:fixed;width:0;height:0;border:0;opacity:0;pointer-events:none;";
+  document.body.appendChild(iframe);
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        URL.revokeObjectURL(blobUrl);
+        if (document.body.contains(iframe)) document.body.removeChild(iframe);
+      }, 1000);
+    }, 300);
+  };
+  iframe.src = blobUrl;
+}
+
 function loadTeamTotals() {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TEAMS_LIST);
@@ -438,17 +459,13 @@ export default function SchedulePage() {
     .end-row td { padding-top: 10px; font-style: italic; color: #555; border-top: 0.75pt solid #aaa; }
     @media print { html, body { margin: 0; } }
   </style>
-  <script>window.onload = function() { window.print(); }</script>
 </head>
 <body>
 ${fieldPages}
 </body>
 </html>`;
 
-    const win = window.open("", "_blank");
-    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
-    win.document.write(html);
-    win.document.close();
+    printViaIframe(html);
   };
 
   const handlePrintSchedule = () => {
@@ -596,17 +613,13 @@ ${sections.join('\n<div class="cut-line"></div>\n')}
     .end-row td { padding-top: 10px; font-weight: bold; border-top: 0.75pt solid #aaa; }
     @media print { html, body { margin: 0; } }
   </style>
-  <script>window.onload = function() { window.print(); }</script>
 </head>
 <body>
 ${pages}
 </body>
 </html>`;
 
-    const win = window.open("", "_blank");
-    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
-    win.document.write(html);
-    win.document.close();
+    printViaIframe(html);
   };
 
   const handleToggleFixed = () => {
@@ -720,7 +733,6 @@ ${pages}
     .hint { font-size: 7pt; color: #aaa; }
     @media print { html, body { margin: 0; } }
   </style>
-  <script>window.onload = function() { setTimeout(function() { window.print(); }, 600); }</script>
 </head>
 <body>
   <div class="grid">
@@ -729,10 +741,7 @@ ${cardHtml}
 </body>
 </html>`;
 
-    const win = window.open("", "_blank");
-    if (!win) { alert("Popup wurde blockiert. Bitte Popups für diese Seite erlauben."); return; }
-    win.document.write(html);
-    win.document.close();
+    printViaIframe(html);
   };
 
   const teamTotals = useMemo(() => loadTeamTotals(), []);
