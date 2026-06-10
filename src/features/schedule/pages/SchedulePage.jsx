@@ -565,28 +565,12 @@ ${fieldPages}
 </div>`;
     };
 
-    // Group teams by club, then chunk each club into pages of ≤3 teams.
-    // Teams from different clubs always start on a new page.
-    const pageGroups = [];
-    let prevClub = null;
-    let chunk    = [];
-    for (const team of sortedTeams) {
-      if (team.clubName !== prevClub || chunk.length >= 3) {
-        if (chunk.length > 0) pageGroups.push(chunk);
-        chunk    = [team];
-        prevClub = team.clubName;
-      } else {
-        chunk.push(team);
-      }
-    }
-    if (chunk.length > 0) pageGroups.push(chunk);
-
-    const pages = pageGroups.map((group, pageIdx) => {
-      const sections = group.map(makeTeamSection).filter(Boolean);
-      if (sections.length === 0) return "";
-      const isLast = pageIdx === pageGroups.length - 1;
+    const pages = sortedTeams.map((team, idx) => {
+      const section = makeTeamSection(team);
+      if (!section) return "";
+      const isLast = idx === sortedTeams.length - 1;
       return `<div class="team-page${isLast ? " last" : ""}">
-${sections.join('\n<div class="cut-line"></div>\n')}
+${section}
 </div>`;
     }).filter(Boolean).join("\n");
 
@@ -600,8 +584,7 @@ ${sections.join('\n<div class="cut-line"></div>\n')}
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; background: #fff; }
     .team-page { page-break-after: always; }
     .team-page.last { page-break-after: avoid; }
-    .cut-line { border-top: 1.5pt dashed #777; margin: 7mm 0; }
-    .hdr { margin-bottom: 6mm; border-bottom: 2pt solid #000; padding-bottom: 3mm; }
+.hdr { margin-bottom: 6mm; border-bottom: 2pt solid #000; padding-bottom: 3mm; }
     .hdr-row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2mm; }
     .team-name { font-size: 18pt; font-weight: bold; }
     .betreuer-label { font-size: 11pt; }

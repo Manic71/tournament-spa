@@ -86,7 +86,7 @@ ${e.map((n,r)=>{let i=0;d.forEach(e=>{e.field===n&&e.round>i&&(i=e.round)});let 
       ${u}
     </tbody>
   </table>
-</div>`},f=[],m=null,h=[];for(let e of a)e.clubName!==m||h.length>=3?(h.length>0&&f.push(h),h=[e],m=e.clubName):h.push(e);h.length>0&&f.push(h),Ti(`<!DOCTYPE html>
+</div>`};Ti(`<!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8">
@@ -96,8 +96,7 @@ ${e.map((n,r)=>{let i=0;d.forEach(e=>{e.field===n&&e.round>i&&(i=e.round)});let 
     body { font-family: Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; background: #fff; }
     .team-page { page-break-after: always; }
     .team-page.last { page-break-after: avoid; }
-    .cut-line { border-top: 1.5pt dashed #777; margin: 7mm 0; }
-    .hdr { margin-bottom: 6mm; border-bottom: 2pt solid #000; padding-bottom: 3mm; }
+.hdr { margin-bottom: 6mm; border-bottom: 2pt solid #000; padding-bottom: 3mm; }
     .hdr-row1 { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2mm; }
     .team-name { font-size: 18pt; font-weight: bold; }
     .betreuer-label { font-size: 11pt; }
@@ -111,11 +110,9 @@ ${e.map((n,r)=>{let i=0;d.forEach(e=>{e.field===n&&e.round>i&&(i=e.round)});let 
   </style>
 </head>
 <body>
-${f.map((e,t)=>{let n=e.map(u).filter(Boolean);return n.length===0?``:`<div class="team-page${t===f.length-1?` last`:``}">
-${n.join(`
-<div class="cut-line"></div>
-`)}
-</div>`}).filter(Boolean).join(`
+${a.map((e,t)=>{let n=u(e);return n?`<div class="team-page${t===a.length-1?` last`:``}">
+${n}
+</div>`:``}).filter(Boolean).join(`
 `)}
 </body>
 </html>`)},b=()=>{let e=!l;u(e),localStorage.setItem(V.SCHEDULE_FIXED,String(e))},x=async()=>{if(d.length===0){alert(`Kein Spielplan vorhanden. Bitte zuerst einen Spielplan erstellen.`);return}let e={},t={};try{let t=localStorage.getItem(V.BETREUER_LIST);t&&(e=JSON.parse(t))}catch{}try{let e=localStorage.getItem(V.TEAMS_LIST);e&&(t=JSON.parse(e))}catch{}let n={};Object.values(t).forEach(e=>{n[e.organizerName]=e.organizerId});let r=new Map;d.forEach(t=>{for(let i of[t.home,t.away]){let a=`${t.ageGroup}:${i}`;if(r.has(a))continue;let o=i.replace(/\s+\d+$/,``),s=i.match(/\s+(\d+)$/),c=s?parseInt(s[1],10):1,l=n[o],u=l===void 0?null:`${l}_${t.ageGroup}_${c}`,d=u&&e[u]?.trim()||`----`;r.set(a,{ageGroup:t.ageGroup,name:i,clubName:o,teamNumber:c,betreuer:d})}});let i={U8:0,U9:1,U10:2},a=[...r.values()].sort((e,t)=>{let n=e.clubName.localeCompare(t.clubName,`de`);if(n!==0)return n;let r=(i[e.ageGroup]??9)-(i[t.ageGroup]??9);return r===0?e.teamNumber-t.teamNumber:r}),o=window.location.origin;Ti(`<!DOCTYPE html>
